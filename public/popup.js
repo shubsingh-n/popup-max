@@ -449,7 +449,7 @@
 
       // Render Components (Multi-step)
       const form = document.createElement('form');
-      form.id = `pm-form-${popupConfig._id}`;
+      form.id = `pm-form-${popupConfig.popupId}`;
       form.style.width = '100%';
       form.onsubmit = (e) => e.preventDefault(); // Handle manually
 
@@ -482,7 +482,7 @@
         const btn = e.target.closest('button[data-action]');
         if (btn) {
           e.preventDefault();
-          handleAction(popupConfig._id, btn.dataset.action, form, btn.dataset.url);
+          handleAction(popupConfig.popupId, btn.dataset.action, form, btn.dataset.url);
         }
       });
 
@@ -653,16 +653,16 @@
     // Apply styles helper
     const applyStyles = (element, cssObj) => {
       Object.assign(element.style, {
-        marginBottom: cssObj.marginBottom || '1rem',
-        marginTop: cssObj.marginTop || '0',
+        marginBottom: cssObj.marginBottom ? (isNaN(cssObj.marginBottom) ? cssObj.marginBottom : cssObj.marginBottom + 'px') : '1rem',
+        marginTop: cssObj.marginTop ? (isNaN(cssObj.marginTop) ? cssObj.marginTop : cssObj.marginTop + 'px') : '0',
         color: cssObj.color,
         fontSize: cssObj.fontSize ? (isNaN(cssObj.fontSize) ? cssObj.fontSize : cssObj.fontSize + 'px') : undefined,
         fontWeight: cssObj.fontWeight,
         textAlign: cssObj.textAlign,
         backgroundColor: cssObj.backgroundColor,
-        padding: cssObj.padding ? (isNaN(cssObj.padding) ? cssObj.padding + 'px' : cssObj.padding) : undefined,
-        borderRadius: cssObj.borderRadius ? (isNaN(cssObj.borderRadius) ? cssObj.borderRadius + 'px' : cssObj.borderRadius) : undefined,
-        borderWidth: cssObj.borderWidth ? (isNaN(cssObj.borderWidth) ? cssObj.borderWidth + 'px' : cssObj.borderWidth) : undefined,
+        padding: cssObj.padding ? (isNaN(cssObj.padding) ? cssObj.padding : cssObj.padding + 'px') : undefined,
+        borderRadius: cssObj.borderRadius ? (isNaN(cssObj.borderRadius) ? cssObj.borderRadius : cssObj.borderRadius + 'px') : undefined,
+        borderWidth: cssObj.borderWidth ? (isNaN(cssObj.borderWidth) ? cssObj.borderWidth : cssObj.borderWidth + 'px') : undefined,
         borderColor: cssObj.borderColor,
         borderStyle: cssObj.border ? 'solid' : (cssObj.borderWidth ? 'solid' : 'none'),
         width: cssObj.width || '100%',
@@ -817,7 +817,7 @@
     }, 1000);
   }
 
-  function handleAction(popupId, action, form, url) {
+  async function handleAction(popupId, action, form, url) {
     const currentStepDiv = form.querySelector('.pm-step:not([style*="display: none"])');
     const currentStepIdx = parseInt(currentStepDiv.dataset.step);
 
@@ -859,17 +859,19 @@
       };
       if (primaryEmail) payload.email = primaryEmail;
 
-      fetch(`${origin}/api/leads`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-        .then(res => res.json())
-        .then(res => {
-          if (res.success && res.data?._id) {
-            currentLeadId = res.data._id;
-          }
+      try {
+        const res = await fetch(`${origin}/api/leads`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
         });
+        const data = await res.json();
+        if (data.success && data.data?._id) {
+          currentLeadId = data.data._id;
+        }
+      } catch (err) {
+        console.error('Error saving lead data:', err);
+      }
 
       if (action === 'next') {
         const nextStep = form.querySelector(`.pm-step[data-step="${currentStepIdx + 1}"]`);
