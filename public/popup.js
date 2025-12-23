@@ -135,7 +135,7 @@
     teaserElement = document.createElement('div');
     teaserElement.style.cssText = `position:fixed;bottom:20px;left:20px;z-index:2147483640;background:${ost.style?.backgroundColor || '#007bff'};color:${ost.style?.color || '#fff'};padding:10px 20px;border-radius:30px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.15);font-weight:bold;`;
     teaserElement.innerHTML = `<span>${ost.text || 'Open Offer'}</span>`;
-    teaserElement.onclick = () => { hideTeaser(); showPopup(config); };
+    teaserElement.onclick = () => { hideTeaser(); showPopup(config, true); };
     document.body.appendChild(teaserElement);
   }
 
@@ -172,8 +172,24 @@
     if (type === 'title') el = document.createElement('h2');
     else if (type === 'description') el = document.createElement('p');
     else if (type === 'button') { el = document.createElement('button'); el.textContent = content.text || 'Submit'; el.dataset.action = content.action || 'submit'; if (content.actionUrl) el.dataset.url = content.actionUrl; }
-    else if (['email', 'phone', 'shortText', 'date'].includes(type)) { el = document.createElement('input'); el.type = (type === 'email' ? 'email' : (type === 'phone' ? 'tel' : (type === 'date' ? 'date' : 'text'))); el.placeholder = content.placeholder || ''; el.name = c.label || id; el.classList.add('popup-data-field'); }
-    else if (type === 'longText') { el = document.createElement('textarea'); el.placeholder = content.placeholder || ''; el.name = c.label || id; el.classList.add('popup-data-field'); }
+    else if (['email', 'phone', 'shortText', 'date'].includes(type)) {
+      el = document.createElement('input');
+      const p = content.placeholder || c.label || id || '';
+      el.placeholder = p;
+      if (type === 'date') {
+        el.type = 'text';
+        el.onfocus = () => el.type = 'date';
+        el.onblur = () => { if (!el.value) el.type = 'text'; };
+      } else {
+        el.type = type === 'email' ? 'email' : (type === 'phone' ? 'tel' : 'text');
+      }
+      el.name = c.label || id; el.classList.add('popup-data-field');
+    }
+    else if (type === 'longText') {
+      el = document.createElement('textarea');
+      el.placeholder = content.placeholder || c.label || id || '';
+      el.name = c.label || id; el.classList.add('popup-data-field');
+    }
     else if (type === 'image') { el = document.createElement('img'); el.src = content.src || ''; el.style.maxWidth = '100%'; }
     else if (type === 'timer') { el = document.createElement('div'); startTimer(el, content.targetDate); }
     else if (type === 'marquee') { el = document.createElement('div'); el.innerHTML = `<div style="display:inline-block;animation:pmMarqueeLeft ${content.speed || 10}s linear infinite;">${content.text || ''}</div>`; el.style.overflow = 'hidden'; el.style.whiteSpace = 'nowrap'; }
@@ -213,8 +229,8 @@
     cont.innerHTML = '<div style="text-align:center;padding:2rem;"><h2>Thank You!</h2></div>'; setTimeout(() => closePopup(config), 3000);
   }
 
-  function showPopup(config) {
-    const id = config.popupId; if (activePopups[id].shown || activePopups[id].closed) return;
+  function showPopup(config, bypass = false) {
+    const id = config.popupId; if (activePopups[id].shown || (activePopups[id].closed && !bypass)) return;
     const ov = createPopup(config); document.body.appendChild(ov);
     activePopups[id].shown = true; sessionStorage.setItem('popup_max_shown_' + id, 'true'); trackEvent('view', config);
   }
