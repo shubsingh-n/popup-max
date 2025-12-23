@@ -88,27 +88,31 @@ export default function DragAndDropBuilder({
         setHasUnsavedChanges(false);
     };
 
-    // Initialize pages if components exist
+    // Initialize pages if components exist or thankYouPageIndex is set
     React.useEffect(() => {
-        if (components.length > 0) {
-            const maxPage = Math.max(...components.map(c => c.pageIndex || 0), 0);
-            setTotalPages(maxPage + 1);
-        }
-    }, [components]);
+        const componentMaxPage = components.length > 0
+            ? Math.max(...components.map(c => c.pageIndex || 0), 0)
+            : 0;
+        const settingsThankYouMax = settings.thankYouPageIndex ?? 0;
+        const initialMax = Math.max(componentMaxPage, settingsThankYouMax, initialComponents.length > 0 ? Math.max(...initialComponents.map(c => c.pageIndex || 0), 0) : 0);
+
+        setTotalPages(prev => Math.max(prev, initialMax + 1));
+    }, [initialComponents]); // Only on mount/initial load 
 
     const handleTitleBlur = () => {
         setIsEditingTitle(false);
     };
 
     const handleAddPage = () => {
+        const newIndex = totalPages;
         setTotalPages(prev => prev + 1);
-        setActivePage(prev => prev + 1);
+        setActivePage(newIndex);
         setHasUnsavedChanges(true);
     };
 
     const handleAddThankYouPage = () => {
         const newIndex = totalPages;
-        setTotalPages(prev => prev + 1);
+        setTotalPages(next => next + 1);
         setActivePage(newIndex);
         handleUpdateSettings({ thankYouPageIndex: newIndex });
         setHasUnsavedChanges(true);
@@ -133,7 +137,16 @@ export default function DragAndDropBuilder({
                 return c;
             }).filter(c => (c.pageIndex || 0) !== index)); // Filter again just in case
 
-            setTotalPages(prev => prev - 1);
+            // Update thankYouPageIndex if it shifts
+            if (settings.thankYouPageIndex !== undefined) {
+                if (settings.thankYouPageIndex === index) {
+                    handleUpdateSettings({ thankYouPageIndex: undefined });
+                } else if (settings.thankYouPageIndex > index) {
+                    handleUpdateSettings({ thankYouPageIndex: settings.thankYouPageIndex - 1 });
+                }
+            }
+
+            setTotalPages(prev => Math.max(1, prev - 1));
             setActivePage(prev => Math.max(0, prev - 1));
             setHasUnsavedChanges(true);
         }
@@ -275,9 +288,10 @@ export default function DragAndDropBuilder({
                                 className={`px-3 py-1 rounded text-sm flex items-center gap-2 ${activePage === idx ? 'bg-white shadow text-blue-600 font-medium ring-1 ring-blue-100' : 'text-gray-600 hover:bg-white/50'}`}
                             >
                                 {isThankYou ? (
-                                    <>
-                                        <span>🎉</span> Thank You
-                                    </>
+                                    <span className="flex items-center gap-1.5">
+                                        <span className="text-sm">🎉</span>
+                                        <span className="font-bold">Thank You Screen</span>
+                                    </span>
                                 ) : (
                                     `Step ${idx + 1}`
                                 )}
