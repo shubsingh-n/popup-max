@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
-import Event from '@/models/Event';
-import mongoose from 'mongoose';
+import Popup from '@/models/Popup';
 
 export async function GET(request: NextRequest) {
     try {
@@ -14,29 +13,16 @@ export async function GET(request: NextRequest) {
 
         await connectDB();
 
-        // Aggregate events by popupId and type
-        const stats = await Event.aggregate([
-            { $match: { siteId } },
-            {
-                $group: {
-                    _id: { popupId: "$popupId", type: "$type" },
-                    count: { $sum: 1 }
-                }
-            }
-        ]);
+        // Fetch all popups for the site and return their pre-aggregated stats
+        const popups = await Popup.find({ siteId }, '_id stats');
 
-        // Format stats into a more usable object: { [popupId]: { visitors, triggered, submitted } }
         const formattedStats: any = {};
-
-        stats.forEach(stat => {
-            const { popupId, type } = stat._id;
-            if (!formattedStats[popupId]) {
-                formattedStats[popupId] = { visitors: 0, triggered: 0, submitted: 0 };
-            }
-
-            if (type === 'visit') formattedStats[popupId].visitors = stat.count;
-            if (type === 'view') formattedStats[popupId].triggered = stat.count;
-            if (type === 'conversion') formattedStats[popupId].submitted = stat.count;
+        popups.forEach(popup => {
+            formattedStats[popup._id.toString()] = {
+                visitors: popup.stats?.visitors || 0,
+                triggered: popup.stats?.views || 0,
+                submitted: popup.stats?.submissions || 0,
+            };
         });
 
         return NextResponse.json({ success: true, data: formattedStats });

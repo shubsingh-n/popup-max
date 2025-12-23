@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Lead from '@/models/Lead';
 import Event from '@/models/Event';
+import Popup from '@/models/Popup';
 
 // CORS headers for cross-origin requests
 const corsHeaders = {
@@ -100,6 +101,13 @@ export async function POST(request: NextRequest) {
         popupId,
         type: 'conversion',
       });
+
+      // Increment pre-aggregated counter for submissions
+      try {
+        await Popup.findByIdAndUpdate(popupId, { $inc: { 'stats.submissions': 1 } });
+      } catch (err) {
+        console.error('Failed to increment popup submissions stat:', err);
+      }
     }
 
     return NextResponse.json({ success: true, data: lead }, { status: leadId ? 200 : 201, headers: corsHeaders });

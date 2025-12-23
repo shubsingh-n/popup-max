@@ -29,6 +29,11 @@ interface Popup {
   isActive: boolean;
   testGroupId?: string;
   variantLabel?: string;
+  stats?: {
+    visitors: number;
+    views: number;
+    submissions: number;
+  };
   createdAt: string;
 }
 
@@ -91,7 +96,6 @@ function PopupsContent() {
   // UI States
   const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
   const [tempTitle, setTempTitle] = useState('');
-  const [stats, setStats] = useState<Record<string, { visitors: number; triggered: number; submitted: number }>>({});
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -108,23 +112,11 @@ function PopupsContent() {
   useEffect(() => {
     if (selectedSiteId) {
       fetchPopups(selectedSiteId);
-      fetchStats(selectedSiteId);
     } else {
       fetchAllPopups();
     }
   }, [selectedSiteId]);
 
-  const fetchStats = async (siteId: string) => {
-    try {
-      const res = await fetch(`/api/popups/stats?siteId=${siteId}`);
-      const data = await res.json();
-      if (data.success) {
-        setStats(data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    }
-  };
 
 
   const fetchSites = async () => {
@@ -246,6 +238,17 @@ function PopupsContent() {
     } catch (error) { console.error(error); }
   };
 
+  const handleRemoveFromGroup = async (popupId: string) => {
+    try {
+      const res = await fetch(`/api/popups/${popupId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ testGroupId: null, variantLabel: null }),
+      });
+      if (res.ok) fetchPopups(selectedSiteId);
+    } catch (error) { console.error(error); }
+  };
+
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over) return;
@@ -263,6 +266,11 @@ function PopupsContent() {
       }
     } else if (overType === 'group') {
       handleAddToGroup(activeId, overId);
+    } else if (overId === 'main-list') {
+      const activePopup = popups.find(p => p._id === activeId);
+      if (activePopup?.testGroupId) {
+        handleRemoveFromGroup(activeId);
+      }
     }
   };
 
@@ -340,13 +348,13 @@ function PopupsContent() {
 
         {/* Analytics */}
         <div className="px-6 py-4 flex-1 text-center font-bold text-gray-700">
-          {stats[popup._id]?.visitors || 0}
+          {popup.stats?.visitors || 0}
         </div>
         <div className="px-6 py-4 flex-1 text-center font-bold text-blue-600">
-          {stats[popup._id]?.triggered || 0}
+          {popup.stats?.views || 0}
         </div>
         <div className="px-6 py-4 flex-1 text-center font-bold text-green-600">
-          {stats[popup._id]?.submitted || 0}
+          {popup.stats?.submissions || 0}
         </div>
 
         <div className="px-6 py-4 text-right w-40 font-medium">
@@ -403,41 +411,43 @@ function PopupsContent() {
                 <div className="px-6 py-3 text-right w-40">Actions</div>
               </div>
 
-              <div className="divide-y divide-gray-200">
-                {(() => {
-                  const renderedGroups = new Set();
-                  return popups.map((popup) => {
-                    if (popup.testGroupId) {
-                      if (renderedGroups.has(popup.testGroupId)) return null;
-                      renderedGroups.add(popup.testGroupId);
-                      const variants = popups.filter(p => p.testGroupId === popup.testGroupId)
-                        .sort((a, b) => (a.variantLabel || '').localeCompare(b.variantLabel || ''));
+              <DroppableArea id="main-list" type="popup">
+                <div className="divide-y divide-gray-200 min-h-[50px]">
+                  {(() => {
+                    const renderedGroups = new Set();
+                    return popups.map((popup) => {
+                      if (popup.testGroupId) {
+                        if (renderedGroups.has(popup.testGroupId)) return null;
+                        renderedGroups.add(popup.testGroupId);
+                        const variants = popups.filter(p => p.testGroupId === popup.testGroupId)
+                          .sort((a, b) => (a.variantLabel || '').localeCompare(b.variantLabel || ''));
 
+                        return (
+                          <DroppableArea key={popup.testGroupId} id={popup.testGroupId} type="group">
+                            <div className="p-4 bg-blue-50/20 border-l-4 border-blue-500 my-2 shadow-sm rounded-r-lg mx-2">
+                              <div className="flex items-center gap-2 mb-3 px-2">
+                                <FlaskConical size={16} className="text-blue-600" />
+                                <h3 className="text-[11px] font-bold text-blue-900 uppercase tracking-wider">A/B Test Group</h3>
+                                <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-bold">{variants.length} VARIANTS</span>
+                              </div>
+                              <div className="space-y-1.5">
+                                {variants.map(v => (
+                                  <DraggableRow key={v._id} id={v._id}>{renderPopupRow(v, true)}</DraggableRow>
+                                ))}
+                              </div>
+                            </div>
+                          </DroppableArea>
+                        );
+                      }
                       return (
-                        <DroppableArea key={popup.testGroupId} id={popup.testGroupId} type="group">
-                          <div className="p-4 bg-blue-50/20 border-l-4 border-blue-500 my-2 shadow-sm rounded-r-lg mx-2">
-                            <div className="flex items-center gap-2 mb-3 px-2">
-                              <FlaskConical size={16} className="text-blue-600" />
-                              <h3 className="text-[11px] font-bold text-blue-900 uppercase tracking-wider">A/B Test Group</h3>
-                              <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-bold">{variants.length} VARIANTS</span>
-                            </div>
-                            <div className="space-y-1.5">
-                              {variants.map(v => (
-                                <DraggableRow key={v._id} id={v._id}>{renderPopupRow(v, true)}</DraggableRow>
-                              ))}
-                            </div>
-                          </div>
+                        <DroppableArea key={popup._id} id={popup._id} type="popup">
+                          <DraggableRow id={popup._id}>{renderPopupRow(popup)}</DraggableRow>
                         </DroppableArea>
                       );
-                    }
-                    return (
-                      <DroppableArea key={popup._id} id={popup._id} type="popup">
-                        <DraggableRow id={popup._id}>{renderPopupRow(popup)}</DraggableRow>
-                      </DroppableArea>
-                    );
-                  });
-                })()}
-              </div>
+                    });
+                  })()}
+                </div>
+              </DroppableArea>
             </div>
             <DragOverlay>
               <div className="bg-white border-2 border-blue-500 p-4 shadow-2xl rounded-lg w-72 opacity-90 flex items-center gap-3">

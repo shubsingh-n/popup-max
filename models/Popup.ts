@@ -72,6 +72,11 @@ export interface IPopup extends Document {
   isActive: boolean;
   testGroupId?: string;   // New: For A/B Testing
   variantLabel?: string; // New: e.g., 'A', 'B', 'C'
+  stats?: {
+    visitors: number;
+    views: number;
+    submissions: number;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -188,6 +193,11 @@ const PopupSchema: Schema = new Schema(
     },
     testGroupId: { type: String, default: null, index: true },
     variantLabel: { type: String, default: null },
+    stats: {
+      visitors: { type: Number, default: 0 },
+      views: { type: Number, default: 0 },
+      submissions: { type: Number, default: 0 },
+    },
   },
   {
     timestamps: true,

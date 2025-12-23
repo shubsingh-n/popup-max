@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Event from '@/models/Event';
+import Popup from '@/models/Popup';
 
 // CORS headers for cross-origin requests
 const corsHeaders = {
@@ -70,6 +71,16 @@ export async function POST(request: NextRequest) {
     }
 
     const event = await Event.create({ siteId, popupId, type });
+
+    // Increment pre-aggregated counters for performance
+    try {
+      const incField = type === 'visit' ? 'stats.visitors' : (type === 'view' ? 'stats.views' : null);
+      if (incField) {
+        await Popup.findByIdAndUpdate(popupId, { $inc: { [incField]: 1 } });
+      }
+    } catch (err) {
+      console.error('Failed to increment popup stats:', err);
+    }
 
     return NextResponse.json({ success: true, data: event }, { status: 201, headers: corsHeaders });
   } catch (error) {
