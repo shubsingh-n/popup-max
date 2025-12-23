@@ -34,6 +34,7 @@ export interface PopupComponent {
         // Button specific
         action?: 'submit' | 'next' | 'prev' | 'close' | 'link';
         actionUrl?: string;
+        hidden?: boolean;
         // Validation (New)
         validation?: {
             required?: boolean;

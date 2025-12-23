@@ -147,10 +147,14 @@
     const visitorType = triggers.visitorType || 'all';
     const requiredCount = triggers.visitorCount || 0;
 
-    if (visitorType === 'unique' && visits > 1) {
-      console.log('%c⊘ Visitor is not unique (Visit #' + visits + ')', 'color: #6c757d;');
-      return;
+    // "Unique" Rule: Once per session
+    if (visitorType === 'unique') {
+      if (sessionStorage.getItem('popup_max_shown_' + popupConfig.popupId)) {
+        console.log('%c⊘ Unique visitor already saw the popup in this session', 'color: #6c757d;');
+        return;
+      }
     }
+
     if (visitorType === 'repeater' && visits <= 1) {
       console.log('%c⊘ Visitor is not a repeater (Visit #' + visits + ')', 'color: #6c757d;');
       return;
@@ -777,6 +781,10 @@
 
     if (el) {
       applyStyles(el, style);
+      // Handle Hidden State
+      if (content.hidden) {
+        el.style.display = 'none';
+      }
       // Ensure inputs have basic styling
       if (['INPUT', 'TEXTAREA'].includes(el.tagName)) {
         if (!style.border && !style.borderWidth) el.style.border = '1px solid #ccc';
@@ -904,6 +912,7 @@
     if (overlay) {
       document.body.appendChild(overlay);
       popupShown = true;
+      sessionStorage.setItem('popup_max_shown_' + popupConfig.popupId, 'true');
       console.log('%c🎯 Popup displayed!', 'color: #28a745; font-weight: bold;');
       trackEvent('view');
 
