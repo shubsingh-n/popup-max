@@ -1186,6 +1186,9 @@
       return; // No active popup or error loading config
     }
 
+    // Track visit for this popup context
+    trackEvent('visit');
+
     // Initialize all targeting and triggers (including teaser)
     checkTriggers();
 

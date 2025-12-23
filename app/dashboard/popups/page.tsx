@@ -91,6 +91,7 @@ function PopupsContent() {
   // UI States
   const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
   const [tempTitle, setTempTitle] = useState('');
+  const [stats, setStats] = useState<Record<string, { visitors: number; triggered: number; submitted: number }>>({});
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -107,10 +108,23 @@ function PopupsContent() {
   useEffect(() => {
     if (selectedSiteId) {
       fetchPopups(selectedSiteId);
+      fetchStats(selectedSiteId);
     } else {
       fetchAllPopups();
     }
   }, [selectedSiteId]);
+
+  const fetchStats = async (siteId: string) => {
+    try {
+      const res = await fetch(`/api/popups/stats?siteId=${siteId}`);
+      const data = await res.json();
+      if (data.success) {
+        setStats(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
 
 
   const fetchSites = async () => {
@@ -281,10 +295,9 @@ function PopupsContent() {
   };
 
   const renderPopupRow = (popup: Popup, isInsideGroup = false) => {
-    const site = sites.find((s) => s.siteId === popup.siteId);
     return (
       <div key={popup._id} className={`flex items-center hover:bg-gray-50 transition-colors ${isInsideGroup ? 'bg-white rounded border border-blue-50/50' : ''}`}>
-        <div className="px-6 py-4 w-1/3 text-sm font-medium text-gray-900">
+        <div className="px-6 py-4 w-1/4 text-sm font-medium text-gray-900">
           <div className="flex items-center gap-2">
             {isInsideGroup && (
               <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-[10px] font-bold">
@@ -313,8 +326,8 @@ function PopupsContent() {
             )}
           </div>
         </div>
-        <div className="px-6 py-4 flex-1 text-sm text-gray-500 truncate">{site?.name || popup.siteId}</div>
-        <div className="px-6 py-4 flex-1">
+
+        <div className="px-6 py-4 w-40">
           <div className="flex items-center gap-3">
             <button
               onClick={(e) => handleToggleStatus(popup._id, popup.isActive, e)}
@@ -322,21 +335,30 @@ function PopupsContent() {
             >
               <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${popup.isActive ? 'translate-x-5' : 'translate-x-0'}`} />
             </button>
-            <span className="text-xs text-gray-500">{popup.isActive ? 'Active' : 'Inactive'}</span>
           </div>
         </div>
-        <div className="px-6 py-4 w-16">
-          <button onClick={(e) => copyEmbedLink(popup, e)} className="text-gray-400 hover:text-blue-600 transition-colors" title="Copy Embed Code">
-            <Copy size={18} />
-          </button>
+
+        {/* Analytics */}
+        <div className="px-6 py-4 flex-1 text-center font-bold text-gray-700">
+          {stats[popup._id]?.visitors || 0}
         </div>
-        <div className="px-6 py-4 text-right flex-1 font-medium">
+        <div className="px-6 py-4 flex-1 text-center font-bold text-blue-600">
+          {stats[popup._id]?.triggered || 0}
+        </div>
+        <div className="px-6 py-4 flex-1 text-center font-bold text-green-600">
+          {stats[popup._id]?.submitted || 0}
+        </div>
+
+        <div className="px-6 py-4 text-right w-40 font-medium">
           <div className="flex items-center justify-end gap-2 text-gray-400">
             {!isInsideGroup && !popup.testGroupId && (
               <button onClick={() => handleCreateABTest(popup)} className="hover:text-purple-600 p-1" title="Create A/B Test">
                 <Split size={18} />
               </button>
             )}
+            <button onClick={(e) => copyEmbedLink(popup, e)} className="hover:text-blue-600 p-1" title="Copy Embed Code">
+              <Copy size={18} />
+            </button>
             <Link href={`/dashboard/popups/${popup._id}`} className="hover:text-blue-600 p-1" title="Edit Design">
               <Edit size={18} />
             </Link>
@@ -373,11 +395,12 @@ function PopupsContent() {
           <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
             <div className="min-w-full">
               <div className="bg-gray-50 border-b flex text-xs font-medium text-gray-500 uppercase tracking-wider select-none">
-                <div className="px-6 py-3 w-1/3">Title</div>
-                <div className="px-6 py-3 flex-1">Site</div>
-                <div className="px-6 py-3 flex-1">Status</div>
-                <div className="px-6 py-3 w-16">Embed</div>
-                <div className="px-6 py-3 text-right flex-1">Actions</div>
+                <div className="px-6 py-3 w-1/4">Title</div>
+                <div className="px-6 py-3 w-40">Status</div>
+                <div className="px-6 py-3 flex-1 text-center">Visitors</div>
+                <div className="px-6 py-3 flex-1 text-center">Triggered</div>
+                <div className="px-6 py-3 flex-1 text-center">Submitted</div>
+                <div className="px-6 py-3 text-right w-40">Actions</div>
               </div>
 
               <div className="divide-y divide-gray-200">
