@@ -308,7 +308,7 @@
     teaser.style.cssText = `
       position: fixed;
       ${posStyles}
-      z-index: 999997;
+      z-index: 2147483640;
       background-color: ${style.backgroundColor || '#007bff'};
       color: ${style.color || '#ffffff'};
       padding: ${style.padding || '10px 20px'};
@@ -391,7 +391,7 @@
       width: 100%;
       height: 100%;
       background-color: ${settings.overlayColor || 'rgba(0, 0, 0, 0.5)'};
-      z-index: 999998;
+      z-index: 2147483646;
       display: flex;
       align-items: ${align};
       justify-content: ${justify};
@@ -992,24 +992,8 @@
       return; // No active popup or error loading config
     }
 
-    // Setup exit intent if enabled
-    if (popupConfig.triggers?.exitIntent) {
-      setupExitIntent();
-      console.log('%c✓ Exit intent trigger enabled', 'color: #28a745;');
-    }
-
-    // Setup time delay if enabled
-    if (popupConfig.triggers?.timeDelay !== null && popupConfig.triggers?.timeDelay !== undefined) {
-      const delay = popupConfig.triggers.timeDelay * 1000; // Convert to milliseconds
-      console.log(`%c✓ Time delay trigger set: ${popupConfig.triggers.timeDelay} seconds`, 'color: #28a745;');
-      timeDelayTimer = setTimeout(() => {
-        showPopup();
-      }, delay);
-    } else {
-      // If no triggers are set, show immediately
-      console.log('%c✓ No delay configured, popup will show immediately', 'color: #28a745;');
-      showPopup();
-    }
+    // Initialize all targeting and triggers (including teaser)
+    checkTriggers();
 
     // Final status
     console.log('%c✅ Popup-Max is ACTIVE and ready!', 'color: #28a745; font-weight: bold; font-size: 12px;');
