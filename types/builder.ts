@@ -76,6 +76,12 @@ export interface PopupSettings {
         color: string;
     };
     closeOnOverlayClick?: boolean;
+    thankYou?: {
+        enabled: boolean;
+        title: string;
+        description: string;
+        displayDuration: number; // in seconds
+    };
     overState?: {
         enabled: boolean;
         text: string;

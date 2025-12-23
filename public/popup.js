@@ -141,23 +141,31 @@
 
     let isPopupAllowed = !isSubmitted;
 
+    if (isSubmitted) {
+      console.log('%c⊘ Popup blocked: Already submitted in this session (ID: ' + popupConfig.popupId + ')', 'color: #6c757d;');
+    }
+
     // "Unique" Rule: Once per session
     if (isPopupAllowed && visitorType === 'unique') {
       if (sessionStorage.getItem('popup_max_shown_' + popupConfig.popupId)) {
-        console.log('%c⊘ Unique visitor already saw the popup in this session', 'color: #6c757d;');
+        console.log('%c⊘ Popup blocked: Unique visitor already saw it in this session', 'color: #6c757d;');
         isPopupAllowed = false;
       }
     }
 
     if (isPopupAllowed && visitorType === 'repeater' && visits <= 1) {
-      console.log('%c⊘ Visitor is not a repeater (Visit #' + visits + ')', 'color: #6c757d;');
+      console.log('%c⊘ Popup blocked: Visitor is not a repeater (Visit #' + visits + ')', 'color: #6c757d;');
       isPopupAllowed = false;
     }
 
     // Specific visit count trigger (e.g. only on 4th visit)
     if (isPopupAllowed && requiredCount > 0 && visits !== requiredCount) {
-      console.log('%c⊘ Visit count mismatch (Current: ' + visits + ', Required: ' + requiredCount + ')', 'color: #6c757d;');
+      console.log('%c⊘ Popup blocked: Visit count mismatch (Current: ' + visits + ', Required: ' + requiredCount + ')', 'color: #6c757d;');
       isPopupAllowed = false;
+    }
+
+    if (isPopupAllowed) {
+      console.log('%c✓ Show rules met: Initializing triggers...', 'color: #28a745;');
     }
 
     // --- 2. Page/Content Targeting ---
@@ -834,6 +842,37 @@
     if (action === 'close') {
       closePopup();
     } else if (action === 'link') {
+      // Save data before redirecting
+      const stepData = {};
+      const inputs = currentStepDiv.querySelectorAll('.popup-data-field');
+      let primaryEmail = null;
+
+      inputs.forEach(input => {
+        const key = input.name || input.id;
+        stepData[key] = input.value;
+        if (input.type === 'email' && !primaryEmail) primaryEmail = input.value;
+      });
+
+      if (Object.keys(stepData).length > 0) {
+        const payload = {
+          siteId: siteId,
+          popupId: popupId,
+          data: stepData,
+          leadId: currentLeadId
+        };
+        if (primaryEmail) payload.email = primaryEmail;
+
+        try {
+          await fetch(`${origin}/api/leads`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+        } catch (err) {
+          console.error('Error saving lead data before link:', err);
+        }
+      }
+
       if (url) window.location.href = url;
     } else if (action === 'next' || action === 'submit') {
       // Collect data from current step
@@ -880,8 +919,7 @@
         // Complete Submission
         sessionStorage.setItem(SUBMIT_KEY_PREFIX + popupId, 'true');
         sessionStorage.setItem('popup_max_filled', 'true');
-        closePopup();
-        alert('Thank you for your submission!');
+        showThankYou();
       }
     } else if (action === 'prev') {
       const prevStep = form.querySelector(`.pm-step[data-step="${currentStepIdx - 1}"]`);
@@ -889,6 +927,45 @@
         currentStepDiv.style.display = 'none';
         prevStep.style.display = 'block';
       }
+    }
+  }
+
+  /**
+   * Show Thank You screen
+   */
+  function showThankYou() {
+    const popupContent = document.getElementById('popup-max-popup');
+    if (!popupContent) return;
+
+    const config = popupConfig.settings?.thankYou;
+    if (config?.enabled) {
+      popupContent.innerHTML = `
+        <div style="text-align: center; padding: 2rem;">
+          <h2 style="color: ${popupConfig.styles?.textColor || '#000'}; margin-bottom: 1rem; font-size: 1.5rem; font-weight: bold;">
+            ${config.title || 'Thank You!'}
+          </h2>
+          <p style="color: ${popupConfig.styles?.textColor || '#666'}; line-height: 1.5;">
+            ${config.description || 'Your submission has been received.'}
+          </p>
+        </div>
+      `;
+
+      if (config.displayDuration > 0) {
+        setTimeout(closePopup, config.displayDuration * 1000);
+      }
+    } else {
+      // Default fallback if not enabled or configured
+      popupContent.innerHTML = `
+        <div style="text-align: center; padding: 2rem;">
+          <h2 style="color: ${popupConfig.styles?.textColor || '#000'}; margin-bottom: 1rem; font-size: 1.5rem; font-weight: bold;">
+            Thank You!
+          </h2>
+          <p style="color: ${popupConfig.styles?.textColor || '#666'};">
+            Your submission has been received.
+          </p>
+        </div>
+      `;
+      setTimeout(closePopup, 3000);
     }
   }
 
@@ -980,21 +1057,7 @@
       if (data.success) {
         sessionStorage.setItem(SUBMIT_KEY_PREFIX + popupConfig.popupId, 'true');
         sessionStorage.setItem('popup_max_filled', 'true');
-        // Show success message
-        const popup = document.getElementById('popup-max-popup');
-        if (popup) {
-          popup.innerHTML = `
-          <div style="text-align: center; padding: 2rem;">
-            <h2 style="color: ${popupConfig.styles.textColor}; margin-bottom: 1rem;">
-              Thank you!
-            </h2>
-            <p style="color: ${popupConfig.styles.textColor};">
-              We'll be in touch soon.
-            </p>
-          </div>
-        `;
-          setTimeout(closePopup, 2000);
-        }
+        showThankYou();
       } else {
         alert(data.error || 'Something went wrong. Please try again.');
       }

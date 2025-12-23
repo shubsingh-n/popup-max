@@ -293,6 +293,70 @@ export default function PropertiesPanel({
                             </div>
                         )}
                     </div>
+
+                    {/* Thank You Screen Settings (New) */}
+                    <div className="border-t pt-4 space-y-4 pb-8">
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Thank You Screen</h4>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-gray-400 font-medium">ENABLE</span>
+                                <input
+                                    type="checkbox"
+                                    checked={settings.thankYou?.enabled || false}
+                                    onChange={(e) => onUpdateSettings({
+                                        thankYou: {
+                                            enabled: e.target.checked,
+                                            title: settings.thankYou?.title || 'Thank You!',
+                                            description: settings.thankYou?.description || 'Your submission has been received.',
+                                            displayDuration: settings.thankYou?.displayDuration || 3
+                                        }
+                                    })}
+                                    className="toggle-checkbox"
+                                />
+                            </div>
+                        </div>
+
+                        {settings.thankYou?.enabled && (
+                            <div className="space-y-4 pt-2">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                                    <input
+                                        type="text"
+                                        value={settings.thankYou?.title || ''}
+                                        onChange={(e) => onUpdateSettings({
+                                            thankYou: { ...settings.thankYou, title: e.target.value } as any
+                                        })}
+                                        className="w-full border rounded px-3 py-2 text-sm"
+                                        placeholder="e.g. Success!"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                    <textarea
+                                        value={settings.thankYou?.description || ''}
+                                        onChange={(e) => onUpdateSettings({
+                                            thankYou: { ...settings.thankYou, description: e.target.value } as any
+                                        })}
+                                        className="w-full border rounded px-3 py-2 text-sm min-h-[80px]"
+                                        placeholder="e.g. We'll be in touch soon."
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Auto-close (seconds)</label>
+                                    <input
+                                        type="number"
+                                        value={settings.thankYou?.displayDuration ?? 3}
+                                        onChange={(e) => onUpdateSettings({
+                                            thankYou: { ...settings.thankYou, displayDuration: Number(e.target.value) } as any
+                                        })}
+                                        className="w-full border rounded px-3 py-2 text-sm"
+                                        min="0"
+                                    />
+                                    <p className="text-[10px] text-gray-400 mt-1">Set to 0 to keep it open until manual close.</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         );
