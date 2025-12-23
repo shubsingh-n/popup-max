@@ -1,4 +1,4 @@
-# Poptin MVP - Popup & Lead Capture Platform
+# Popup-Max - Popup & Lead Capture Platform
 
 A production-ready MVP web app for creating and managing popups with lead capture functionality.
 
@@ -20,9 +20,9 @@ npm install
 
 2. Create a `.env.local` file with your MongoDB connection string:
 ```
-MONGODB_URI=mongodb://localhost:27017/poptin
+MONGODB_URI=mongodb://localhost:27017/popup-max
 # Or use MongoDB Atlas:
-# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/poptin
+# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/popup-max
 ```
 
 3. Run the development server:

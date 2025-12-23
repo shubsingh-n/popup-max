@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Poptin MVP - Popup & Lead Capture Platform",
+  title: "Popup-Max - Popup & Lead Capture Platform",
   description: "Create and manage popups with lead capture functionality",
 };
 

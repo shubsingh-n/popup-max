@@ -1,9 +1,10 @@
 {
-  "name": "poptin-mvp",
+  "name": "popup-max",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "description": "Popup-Max - Popup & Lead Capture Platform",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -30,4 +31,3 @@
     "typescript": "^5.5.3"
   }
 }
-

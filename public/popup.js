@@ -1,5 +1,5 @@
 /**
- * Poptin MVP - Embed Script
+ * Popup-Max - Embed Script
  * 
  * This script loads asynchronously and injects popups into host websites.
  * Usage: <script src="https://yourapp.com/popup.js" data-site-id="SITE_ID"></script>
@@ -9,7 +9,7 @@
   'use strict';
 
   // Log script initialization
-  console.log('%c🚀 Poptin Script', 'color: #007bff; font-weight: bold; font-size: 14px;');
+  console.log('%c🚀 Popup-Max Script', 'color: #007bff; font-weight: bold; font-size: 14px;');
   console.log('%cScript loaded successfully!', 'color: #28a745; font-weight: bold;');
 
   // Get site ID from script tag
@@ -17,7 +17,7 @@
   const siteId = scriptTag?.getAttribute('data-site-id');
 
   if (!siteId) {
-    console.error('%c❌ Poptin Error:', 'color: #dc3545; font-weight: bold;', 'Site ID is required. Add data-site-id attribute to the script tag.');
+    console.error('%c❌ Popup-Max Error:', 'color: #dc3545; font-weight: bold;', 'Site ID is required. Add data-site-id attribute to the script tag.');
     return;
   }
 
@@ -26,7 +26,7 @@
   // Get the origin (protocol + host) from the script src
   const scriptSrc = scriptTag?.src || '';
   const origin = scriptSrc.substring(0, scriptSrc.lastIndexOf('/'));
-  
+
   console.log('%c✓ API Origin:', 'color: #28a745;', origin);
 
   // State
@@ -59,7 +59,7 @@
         return false;
       }
     } catch (error) {
-      console.error('%c❌ Poptin Error:', 'color: #dc3545; font-weight: bold;', 'Error fetching popup config:', error);
+      console.error('%c❌ Popup-Max Error:', 'color: #dc3545; font-weight: bold;', 'Error fetching popup config:', error);
       return false;
     }
   }
@@ -83,7 +83,7 @@
         }),
       });
     } catch (error) {
-      console.error('Poptin: Error tracking event:', error);
+      console.error('Popup-Max: Error tracking event:', error);
     }
   }
 
@@ -95,7 +95,7 @@
 
     // Create overlay
     const overlay = document.createElement('div');
-    overlay.id = 'poptin-overlay';
+    overlay.id = 'popup-max-overlay';
     overlay.style.cssText = `
       position: fixed;
       top: 0;
@@ -112,7 +112,7 @@
 
     // Create popup container
     const popup = document.createElement('div');
-    popup.id = 'poptin-popup';
+    popup.id = 'popup-max-popup';
     popup.style.cssText = `
       background-color: ${popupConfig.styles.backgroundColor};
       color: ${popupConfig.styles.textColor};
@@ -215,9 +215,9 @@
     overlay.appendChild(popup);
 
     // Add CSS animations
-    if (!document.getElementById('poptin-styles')) {
+    if (!document.getElementById('popup-max-styles')) {
       const style = document.createElement('style');
-      style.id = 'poptin-styles';
+      style.id = 'popup-max-styles';
       style.textContent = `
         @keyframes fadeIn {
           from { opacity: 0; }
@@ -300,7 +300,7 @@
 
       if (data.success) {
         // Show success message
-        const popup = document.getElementById('poptin-popup');
+        const popup = document.getElementById('popup-max-popup');
         if (popup) {
           popup.innerHTML = `
             <div style="text-align: center; padding: 2rem;">
@@ -318,7 +318,7 @@
         alert(data.error || 'Something went wrong. Please try again.');
       }
     } catch (error) {
-      console.error('Poptin: Error submitting lead:', error);
+      console.error('Popup-Max: Error submitting lead:', error);
       alert('Something went wrong. Please try again.');
     }
   }
@@ -357,7 +357,7 @@
     const configLoaded = await fetchPopupConfig();
 
     if (!configLoaded || !popupConfig) {
-      console.warn('%c⚠ Poptin script is loaded but no active popup found', 'color: #ffc107;');
+      console.warn('%c⚠ Popup-Max script is loaded but no active popup found', 'color: #ffc107;');
       return; // No active popup or error loading config
     }
 
@@ -381,12 +381,12 @@
     }
 
     // Final status
-    console.log('%c✅ Poptin is ACTIVE and ready!', 'color: #28a745; font-weight: bold; font-size: 12px;');
+    console.log('%c✅ Popup-Max is ACTIVE and ready!', 'color: #28a745; font-weight: bold; font-size: 12px;');
     console.log('%c   Popup will appear based on configured triggers', 'color: #6c757d; font-size: 11px;');
   }
 
   // Start initialization
-  console.log('%c🔄 Initializing Poptin...', 'color: #007bff;');
+  console.log('%c🔄 Initializing Popup-Max...', 'color: #007bff;');
   init();
 })();
 
