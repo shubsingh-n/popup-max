@@ -25,7 +25,6 @@ const LeadSchema: Schema = new Schema(
     },
     email: {
       type: String,
-      required: [true, 'Email is required'],
       trim: true,
       lowercase: true,
       index: true,
@@ -39,9 +38,6 @@ const LeadSchema: Schema = new Schema(
     timestamps: true,
   }
 );
-
-// Compound index to prevent duplicate emails per popup
-LeadSchema.index({ popupId: 1, email: 1 }, { unique: true });
 
 export default mongoose.models.Lead || mongoose.model<ILead>('Lead', LeadSchema);
 

@@ -52,19 +52,19 @@ export async function POST(request: NextRequest) {
   try {
     await connectDB();
     const body = await request.json();
-    const { siteId, popupId, email, data } = body;
+    const { siteId, popupId, email, data, leadId } = body;
 
-    if (!siteId || !popupId || !email) {
+    if (!siteId || !popupId) {
       return NextResponse.json(
-        { success: false, error: 'Site ID, popup ID, and email are required' },
+        { success: false, error: 'Site ID and popup ID are required' },
         { status: 400, headers: corsHeaders }
       );
     }
 
-    // Basic email validation (skip for anonymous placeholder)
-    if (email !== 'anonymous@upload') {
+    // Basic email validation if provided
+    if (email) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
+      if (email !== 'anonymous@upload' && !emailRegex.test(email)) {
         return NextResponse.json(
           { success: false, error: 'Invalid email format' },
           { status: 400, headers: corsHeaders }
@@ -72,32 +72,41 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Try to create lead (will fail if duplicate)
     let lead;
-    try {
-      lead = await Lead.create({ siteId, popupId, email, data });
-    } catch (error: any) {
-      if (error.code === 11000) {
-        return NextResponse.json(
-          { success: false, error: 'Email already submitted for this popup' },
-          { status: 400, headers: corsHeaders }
-        );
+    if (leadId) {
+      // UPDATE existing lead
+      lead = await Lead.findById(leadId);
+      if (lead) {
+        if (email) lead.email = email;
+        if (data) {
+          lead.data = { ...(lead.data || {}), ...data };
+          lead.markModified('data');
+        }
+        await lead.save();
+      } else {
+        // Fallback to create if leadId was invalid/missing from DB
+        lead = await Lead.create({ siteId, popupId, email, data });
       }
-      throw error;
+    } else {
+      // CREATE new lead
+      lead = await Lead.create({ siteId, popupId, email, data });
     }
 
-    // Track conversion event
-    await Event.create({
-      siteId,
-      popupId,
-      type: 'conversion',
-    });
+    // Track conversion event (only once per lead? maybe on first step or final submit)
+    // For now, track on every partial save or just if it's new?
+    if (!leadId) {
+      await Event.create({
+        siteId,
+        popupId,
+        type: 'conversion',
+      });
+    }
 
-    return NextResponse.json({ success: true, data: lead }, { status: 201, headers: corsHeaders });
+    return NextResponse.json({ success: true, data: lead }, { status: leadId ? 200 : 201, headers: corsHeaders });
   } catch (error) {
-    console.error('Error creating lead:', error);
+    console.error('Error handling lead:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to create lead' },
+      { success: false, error: 'Failed to process lead' },
       { status: 500, headers: corsHeaders }
     );
   }

@@ -38,6 +38,8 @@
   let exitIntentBound = false;
   let teaserDelayTimer = null;
   let popupFilled = localStorage.getItem('popup_max_filled') === 'true';
+  let currentLeadId = null;
+  const SUBMIT_KEY_PREFIX = 'popup_max_submitted_';
 
   /**
    * Fetch popup configuration from API
@@ -130,6 +132,12 @@
    */
   function checkTriggers() {
     if (popupShown) return;
+
+    // Safety check: Don't show if already submitted
+    if (localStorage.getItem(SUBMIT_KEY_PREFIX + popupConfig.popupId)) {
+      console.log('%c⊘ Popup already submitted, skipping.', 'color: #6c757d;');
+      return;
+    }
 
     const triggers = popupConfig.triggers || {};
     const settings = popupConfig.settings || {};
@@ -830,11 +838,50 @@
       closePopup();
     } else if (action === 'link') {
       if (url) window.location.href = url;
-    } else if (action === 'next') {
-      const nextStep = form.querySelector(`.pm-step[data-step="${currentStepIdx + 1}"]`);
-      if (nextStep) {
-        currentStepDiv.style.display = 'none';
-        nextStep.style.display = 'block';
+    } else if (action === 'next' || action === 'submit') {
+      // Collect data from current step
+      const stepData = {};
+      const inputs = currentStepDiv.querySelectorAll('.popup-data-field');
+      let primaryEmail = null;
+
+      inputs.forEach(input => {
+        const key = input.name || input.id;
+        stepData[key] = input.value;
+        if (input.type === 'email' && !primaryEmail) primaryEmail = input.value;
+      });
+
+      // Partial Save to DB
+      const payload = {
+        siteId: siteId,
+        popupId: popupId,
+        data: stepData,
+        leadId: currentLeadId
+      };
+      if (primaryEmail) payload.email = primaryEmail;
+
+      fetch(`${origin}/api/leads`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+        .then(res => res.json())
+        .then(res => {
+          if (res.success && res.data?._id) {
+            currentLeadId = res.data._id;
+          }
+        });
+
+      if (action === 'next') {
+        const nextStep = form.querySelector(`.pm-step[data-step="${currentStepIdx + 1}"]`);
+        if (nextStep) {
+          currentStepDiv.style.display = 'none';
+          nextStep.style.display = 'block';
+        }
+      } else {
+        // Complete Submission
+        localStorage.setItem(SUBMIT_KEY_PREFIX + popupId, 'true');
+        closePopup();
+        alert('Thank you for your submission!');
       }
     } else if (action === 'prev') {
       const prevStep = form.querySelector(`.pm-step[data-step="${currentStepIdx - 1}"]`);
@@ -842,22 +889,8 @@
         currentStepDiv.style.display = 'none';
         prevStep.style.display = 'block';
       }
-    } else if (action === 'submit') {
-      const formData = new FormData(form);
-      const data = Object.fromEntries(formData.entries());
-      // Track conversion view
-      console.log('PopupMax Conversion:', data);
-
-      // Handle actual submit?
-      handleSubmit({
-        preventDefault: () => { },
-        target: form
-      });
-      closePopup();
     }
   }
-
-
 
   /**
    * Show popup
@@ -913,11 +946,18 @@
    * Handle form submission
    */
   async function handleSubmit(e) {
-    e.preventDefault();
-    const emailInput = e.target.querySelector('input[type="email"]');
-    const email = emailInput.value.trim();
+    if (e.preventDefault) e.preventDefault();
 
-    if (!email) return;
+    // Collect ALL form data
+    const formData = {};
+    const inputs = e.target.querySelectorAll('.popup-data-field');
+    let email = null;
+
+    inputs.forEach(input => {
+      const key = input.name || input.id;
+      formData[key] = input.value;
+      if (input.type === 'email' && !email) email = input.value;
+    });
 
     try {
       const response = await fetch(`${origin}/api/leads`, {
@@ -929,6 +969,8 @@
           siteId: siteId,
           popupId: popupConfig.popupId,
           email: email,
+          data: formData,
+          leadId: currentLeadId
         }),
       });
 
@@ -939,15 +981,15 @@
         const popup = document.getElementById('popup-max-popup');
         if (popup) {
           popup.innerHTML = `
-            <div style="text-align: center; padding: 2rem;">
-              <h2 style="color: ${popupConfig.styles.textColor}; margin-bottom: 1rem;">
-                Thank you!
-              </h2>
-              <p style="color: ${popupConfig.styles.textColor};">
-                We'll be in touch soon.
-              </p>
-            </div>
-          `;
+          <div style="text-align: center; padding: 2rem;">
+            <h2 style="color: ${popupConfig.styles.textColor}; margin-bottom: 1rem;">
+              Thank you!
+            </h2>
+            <p style="color: ${popupConfig.styles.textColor};">
+              We'll be in touch soon.
+            </p>
+          </div>
+        `;
           setTimeout(closePopup, 2000);
         }
       } else {

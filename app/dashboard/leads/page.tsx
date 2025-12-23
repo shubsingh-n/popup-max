@@ -10,6 +10,7 @@ interface Lead {
   siteId: string;
   popupId: string;
   email: string;
+  data?: Record<string, any>;
   createdAt: string;
 }
 
@@ -37,11 +38,7 @@ export default function LeadsPage() {
   }, []);
 
   useEffect(() => {
-    if (filterSiteId || filterPopupId) {
-      fetchLeads();
-    } else {
-      fetchLeads();
-    }
+    fetchLeads();
   }, [filterSiteId, filterPopupId]);
 
   const fetchData = async () => {
@@ -84,21 +81,38 @@ export default function LeadsPage() {
   };
 
   const exportToCSV = () => {
-    const headers = ['Email', 'Site', 'Popup', 'Date'];
+    // Collect all unique keys from the 'data' field across all leads
+    const allDataKeys = new Set<string>();
+    leads.forEach(lead => {
+      if (lead.data) {
+        Object.keys(lead.data).forEach(key => allDataKeys.add(key));
+      }
+    });
+    const dynamicHeaders = Array.from(allDataKeys);
+
+    const headers = ['Email', 'Site', 'Popup', 'Date', ...dynamicHeaders];
+
     const rows = leads.map((lead) => {
       const site = sites.find((s) => s.siteId === lead.siteId);
       const popup = popups.find((p) => p._id === lead.popupId);
+
+      const dynamicCells = dynamicHeaders.map(key => {
+        const val = lead.data?.[key];
+        return val !== undefined && val !== null ? String(val) : '';
+      });
+
       return [
-        lead.email,
+        lead.email || 'Anonymous',
         site?.name || lead.siteId,
         popup?.title || lead.popupId,
         new Date(lead.createdAt).toLocaleString(),
+        ...dynamicCells
       ];
     });
 
     const csvContent = [
       headers.join(','),
-      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(',')),
+      ...rows.map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(',')),
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -190,6 +204,9 @@ export default function LeadsPage() {
                     Popup
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Data Summary
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Date
                   </th>
                 </tr>
@@ -198,16 +215,26 @@ export default function LeadsPage() {
                 {leads.map((lead) => {
                   const site = sites.find((s) => s.siteId === lead.siteId);
                   const popup = popups.find((p) => p._id === lead.popupId);
+
+                  // Simple summary of dynamic data
+                  const dataSummary = lead.data ? Object.entries(lead.data)
+                    .filter(([key, val]) => val && key !== 'email')
+                    .map(([key, val]) => `${key}: ${val}`)
+                    .join(', ') : '';
+
                   return (
                     <tr key={lead._id}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {lead.email}
+                        {lead.email || <span className="text-gray-400 italic">Anonymous</span>}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {site?.name || lead.siteId}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {popup?.title || lead.popupId}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate max-w-xs" title={dataSummary}>
+                        {dataSummary || <span className="text-gray-300">-</span>}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(lead.createdAt).toLocaleString()}

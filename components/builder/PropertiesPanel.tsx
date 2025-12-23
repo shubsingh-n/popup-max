@@ -385,6 +385,20 @@ export default function PropertiesPanel({
                         </>
                     )}
 
+                    {(type === 'email' || type === 'phone' || type === 'shortText' || type === 'longText' || type === 'date') && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Field Label / ID</label>
+                            <input
+                                type="text"
+                                value={selectedComponent.label || ''}
+                                onChange={(e) => onUpdateComponent(selectedComponent.id, { label: e.target.value })}
+                                className="w-full border rounded px-3 py-2 text-sm"
+                                placeholder="e.g. first_name, your_email"
+                            />
+                            <p className="text-[10px] text-gray-400 mt-1">This will be the key used in lead data.</p>
+                        </div>
+                    )}
+
                     {(type === 'email' || type === 'phone' || type === 'shortText' || type === 'longText') && (
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Placeholder</label>
