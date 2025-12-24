@@ -229,17 +229,38 @@
 
   async function handleAction(config, action, form, url, triggerPopupId) {
     const cs = form.querySelector('.pm-step:not([style*="display: none"])'), si = parseInt(cs.dataset.step);
+
+    const saveLead = async () => {
+      const fd = {}; cs.querySelectorAll('.popup-data-field').forEach(i => fd[i.name || i.id] = i.value);
+      try {
+        const r = await fetch(`${origin}/api/leads`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ siteId, popupId: config.popupId, data: fd, leadId: currentLeadId }),
+        });
+        const d = await r.json();
+        if (d.success && d.data?._id) currentLeadId = d.data._id;
+      } catch (e) { console.error('Popup-Max: Save error', e); }
+    };
+
     if (action === 'close') closePopup(config);
     else if (action === 'next' || action === 'submit') {
-      const fd = {}; cs.querySelectorAll('.popup-data-field').forEach(i => fd[i.name || i.id] = i.value);
-      await fetch(`${origin}/api/leads`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId, popupId: config.popupId, data: fd, leadId: currentLeadId }), }).then(r => r.json()).then(d => { if (d.success) currentLeadId = d.data?._id; });
-      if (action === 'next') { const n = form.querySelector(`.pm-step[data-step="${si + 1}"]`); if (n) { cs.style.display = 'none'; n.style.display = 'block'; } }
-      else { sessionStorage.setItem(SUBMIT_KEY_PREFIX + config.popupId, 'true'); showThankYou(config); }
+      await saveLead();
+      if (action === 'next') {
+        const n = form.querySelector(`.pm-step[data-step="${si + 1}"]`);
+        if (n) { cs.style.display = 'none'; n.style.display = 'block'; }
+      } else {
+        sessionStorage.setItem(SUBMIT_KEY_PREFIX + config.popupId, 'true');
+        showThankYou(config);
+      }
     } else if (action === 'prev') {
       const p = form.querySelector(`.pm-step[data-step="${si - 1}"]`);
       if (p) { cs.style.display = 'none'; p.style.display = 'block'; }
-    } else if (action === 'link' && url) window.location.href = url;
-    else if (action === 'trigger_popup' && triggerPopupId) {
+    } else if (action === 'link' && url) {
+      await saveLead();
+      window.location.href = url;
+    } else if (action === 'trigger_popup' && triggerPopupId) {
+      await saveLead();
       closePopup(config);
       try {
         const r = await fetch(`${origin}/api/embed/popup/${triggerPopupId}`);
