@@ -243,32 +243,47 @@
   }
 
   function validateField(field) {
-    if (!field) return true;
+    if (!field) return { valid: true, message: '' };
     const val = field.value.trim();
 
-    if (field.dataset.required === 'true' && !val) return false;
+    if (field.dataset.required === 'true' && !val) {
+      return { valid: false, message: 'This field is required' };
+    }
 
     if (field.type === 'email' && val) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(val)) return false;
+      if (!emailRegex.test(val)) {
+        return { valid: false, message: 'Please enter a valid email address' };
+      }
     }
 
     if (field.type === 'number' && val) {
-      if (isNaN(val)) return false;
+      if (isNaN(val)) {
+        return { valid: false, message: 'Please enter a valid number' };
+      }
     }
 
     if (field.dataset.pattern && val) {
       const regex = new RegExp(field.dataset.pattern);
-      if (!regex.test(val)) return false;
+      if (!regex.test(val)) {
+        return { valid: false, message: 'Invalid format' };
+      }
     }
 
     const minLen = field.dataset.min ? parseInt(field.dataset.min) : null;
     const maxLen = field.dataset.max ? parseInt(field.dataset.max) : null;
 
-    if (minLen !== null && val.length < minLen) return false;
-    if (maxLen !== null && val.length > maxLen) return false;
+    if (minLen !== null && val.length < minLen) {
+      const fieldType = field.type === 'number' ? 'digits' : 'characters';
+      return { valid: false, message: `Minimum ${minLen} ${fieldType} required` };
+    }
 
-    return true;
+    if (maxLen !== null && val.length > maxLen) {
+      const fieldType = field.type === 'number' ? 'digits' : 'characters';
+      return { valid: false, message: `Maximum ${maxLen} ${fieldType} allowed` };
+    }
+
+    return { valid: true, message: '' };
   }
 
   function validateStep(form, stepIndex) {
@@ -276,15 +291,30 @@
     if (!step) return true;
 
     const fields = step.querySelectorAll('.popup-data-field');
+    let allValid = true;
+
     for (const field of fields) {
-      if (!validateField(field)) {
+      const result = validateField(field);
+
+      // Remove existing error message
+      const existingError = field.parentElement.querySelector('.pm-error-message');
+      if (existingError) existingError.remove();
+
+      if (!result.valid) {
+        allValid = false;
         field.style.borderColor = '#ef4444';
-        return false;
+
+        // Add error message
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'pm-error-message';
+        errorDiv.style.cssText = 'color: #ef4444; font-size: 0.875rem; margin-top: 0.25rem;';
+        errorDiv.textContent = result.message;
+        field.parentElement.appendChild(errorDiv);
       } else {
         field.style.borderColor = '';
       }
     }
-    return true;
+    return allValid;
   }
 
   function updateButtonStates(form, stepIndex) {
