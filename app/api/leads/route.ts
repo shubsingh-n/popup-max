@@ -52,6 +52,17 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
+
+    // One-time maintenance: Drop the legacy unique index if it exists
+    try {
+      if (Lead.collection) {
+        await Lead.collection.dropIndex('popupId_1_email_1');
+        console.log('[Leads-API] Dropped legacy unique index popupId_1_email_1');
+      }
+    } catch (e) {
+      // Ignore error if index doesn't exist
+    }
+
     const body = await request.json();
     const { siteId, popupId, email, data, leadId } = body;
 
