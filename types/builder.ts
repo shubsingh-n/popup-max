@@ -2,6 +2,7 @@
 export type ComponentType =
     | 'email'
     | 'phone'
+    | 'number'
     | 'button'
     | 'image'
     | 'longText'

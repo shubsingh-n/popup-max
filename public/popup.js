@@ -186,7 +186,7 @@
       if (content.actionUrl) el.dataset.url = content.actionUrl;
       if (content.triggerPopupId) el.dataset.triggerPopupId = content.triggerPopupId;
     }
-    else if (['email', 'phone', 'shortText', 'date'].includes(type)) {
+    else if (['email', 'phone', 'number', 'shortText', 'date'].includes(type)) {
       el = document.createElement('input');
       const p = content.placeholder || c.label || id || '';
       el.placeholder = p;
@@ -194,6 +194,10 @@
         el.type = 'text';
         el.onfocus = () => el.type = 'date';
         el.onblur = () => { if (!el.value) el.type = 'text'; };
+      } else if (type === 'number') {
+        el.type = 'number';
+        el.inputMode = 'numeric';
+        el.pattern = '[0-9]*';
       } else {
         el.type = type === 'email' ? 'email' : (type === 'phone' ? 'tel' : 'text');
       }
@@ -249,13 +253,20 @@
       if (!emailRegex.test(val)) return false;
     }
 
+    if (field.type === 'number' && val) {
+      if (isNaN(val)) return false;
+    }
+
     if (field.dataset.pattern && val) {
       const regex = new RegExp(field.dataset.pattern);
       if (!regex.test(val)) return false;
     }
 
-    if (field.dataset.min && val.length < parseInt(field.dataset.min)) return false;
-    if (field.dataset.max && val.length > parseInt(field.dataset.max)) return false;
+    const minLen = field.dataset.min ? parseInt(field.dataset.min) : null;
+    const maxLen = field.dataset.max ? parseInt(field.dataset.max) : null;
+
+    if (minLen !== null && val.length < minLen) return false;
+    if (maxLen !== null && val.length > maxLen) return false;
 
     return true;
   }
