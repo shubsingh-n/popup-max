@@ -195,7 +195,18 @@
     else if (type === 'marquee') { el = document.createElement('div'); el.innerHTML = `<div style="display:inline-block;animation:pmMarqueeLeft ${content.speed || 10}s linear infinite;">${content.text || ''}</div>`; el.style.overflow = 'hidden'; el.style.whiteSpace = 'nowrap'; }
     if (el) {
       if (!['input', 'textarea', 'button', 'img'].includes(el.tagName.toLowerCase())) el.textContent = content.text || '';
-      Object.assign(el.style, { width: '100%', marginBottom: style?.marginBottom || '1rem', color: style?.color, fontSize: style?.fontSize, textAlign: style?.textAlign, padding: style?.padding, backgroundColor: style?.backgroundColor, borderRadius: style?.borderRadius, border: style?.border || (['input', 'textarea'].includes(el.tagName.toLowerCase()) ? '1px solid #ccc' : 'none') });
+      Object.assign(el.style, {
+        width: '100%',
+        marginBottom: style?.marginBottom || '1rem',
+        color: style?.color,
+        fontSize: style?.fontSize,
+        textAlign: style?.textAlign,
+        padding: style?.padding || (['input', 'textarea', 'button'].includes(el.tagName.toLowerCase()) ? '0.75rem' : undefined),
+        backgroundColor: style?.backgroundColor,
+        borderRadius: style?.borderRadius,
+        border: style?.border || (['input', 'textarea'].includes(el.tagName.toLowerCase()) ? '1px solid #ccc' : 'none'),
+        boxSizing: 'border-box'
+      });
     }
     return el;
   }
