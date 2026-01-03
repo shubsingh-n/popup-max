@@ -46,7 +46,7 @@ export default function LoginPage() {
                     </h2>
                     <p className="mt-2 text-center text-sm text-gray-600">
                         Or{' '}
-                        <Link href="/signup" className="font-medium text-blue-600 hover:text-blue-500">
+                        <Link href="/register" className="font-medium text-blue-600 hover:text-blue-500">
                             create a new account
                         </Link>
                     </p>
@@ -106,7 +106,7 @@ export default function LoginPage() {
                         </button>
                     </div>
                     <div className="text-center mt-4 text-sm text-gray-600">
-                        Don't have an account?{' '}
+                        Don&apos;t have an account?{' '}
                         <Link href="/register" className="text-blue-600 hover:underline font-medium">
                             Sign up for free
                         </Link>

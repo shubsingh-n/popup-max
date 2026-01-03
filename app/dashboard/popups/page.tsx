@@ -437,7 +437,7 @@ function PopupsContent() {
             <div className="flex-1">
               <h3 className="text-lg font-bold text-blue-900 mb-1">Popup Setup Required</h3>
               <p className="text-blue-800 text-sm mb-4">
-                To show popups on your website, you must embed the script tag into your website's header or footer.
+                To show popups on your website, you must embed the script tag into your website&apos;s header or footer.
               </p>
 
               <div className="bg-white p-4 rounded-lg border border-blue-200 flex items-center justify-between gap-4">

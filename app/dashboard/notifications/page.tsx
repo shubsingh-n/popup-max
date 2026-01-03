@@ -132,7 +132,7 @@ export default function NotificationsPage() {
                         <div className="flex-1">
                             <h3 className="text-lg font-bold text-amber-900 mb-1">Push Notifications Setup Required</h3>
                             <p className="text-amber-800 text-sm mb-4">
-                                To send notifications to your website visitors, you must upload the Service Worker file to your website's root directory.
+                                To send notifications to your website visitors, you must upload the Service Worker file to your website&apos;s root directory.
                             </p>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -175,7 +175,7 @@ export default function NotificationsPage() {
                 {campaigns.length === 0 ? (
                     <div className="p-12 text-center text-gray-500">
                         <Bell size={48} className="mx-auto mb-4 text-gray-300" />
-                        <p className="text-lg">No campaigns yet. Click "New Campaign" to create one.</p>
+                        <p className="text-lg">No campaigns yet. Click &quot;New Campaign&quot; to create one.</p>
                     </div>
                 ) : (
                     <table className="min-w-full divide-y divide-gray-200">
