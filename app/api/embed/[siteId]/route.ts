@@ -91,13 +91,25 @@ export async function GET(
       styles: popup.styles,
       components: popup.components,
       settings: popup.settings,
-      triggers: popup.triggers,
+      type: popup.type || 'popup', // Include type
     }));
+
+    const firebaseConfig = {
+      apiKey: process.env.NEXT_PUBLIC_FCM_API_KEY,
+      authDomain: process.env.NEXT_PUBLIC_FCM_AUTH_DOMAIN,
+      projectId: process.env.NEXT_PUBLIC_FCM_PROJECT_ID,
+      storageBucket: process.env.NEXT_PUBLIC_FCM_STORAGE_BUCKET,
+      messagingSenderId: process.env.NEXT_PUBLIC_FCM_MESSAGING_SENDER_ID,
+      appId: process.env.NEXT_PUBLIC_FCM_APP_ID,
+      measurementId: process.env.NEXT_PUBLIC_FCM_MEASUREMENT_ID,
+      vapidKey: process.env.NEXT_PUBLIC_FCM_VAPID_KEY
+    };
 
     return NextResponse.json(
       {
         success: true,
         data: responseData,
+        firebaseConfig
       },
       { status: 200, headers: corsHeaders }
     );

@@ -16,6 +16,8 @@
     "@dnd-kit/utilities": "^3.2.2",
     "bcryptjs": "^3.0.3",
     "dotenv": "^16.4.5",
+    "firebase": "^12.7.0",
+    "firebase-admin": "^13.6.0",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.562.0",
     "mongoose": "^8.5.1",

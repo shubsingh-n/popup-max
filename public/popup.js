@@ -28,6 +28,7 @@
       const data = await response.json();
       if (data.success && Array.isArray(data.data)) {
         popupConfigs = data.data;
+        if (data.firebaseConfig) window.popupMaxFirebaseConfig = data.firebaseConfig;
         popupConfigs.forEach(config => {
           activePopups[config.popupId] = { shown: false, closed: false, element: null, config: config, leadId: null };
         });
@@ -385,6 +386,63 @@
           setTimeout(() => showPopup(cfg, true), 300);
         }
       } catch (e) { console.error('Error triggering chained popup:', e); }
+    } else if (action === 'register_push') {
+      await registerPush(config);
+    }
+  }
+
+  // --- FCM Logic ---
+  let firebaseLoaded = false;
+  async function loadFirebase() {
+    if (firebaseLoaded) return window.firebase;
+    const loadScript = (src) => new Promise((resolve, reject) => {
+      const s = document.createElement('script'); s.src = src; s.onload = resolve; s.onerror = reject; document.head.appendChild(s);
+    });
+    try {
+      if (!window.firebase) await loadScript('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
+      if (!window.firebase.messaging) await loadScript('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
+      firebaseLoaded = true;
+      return window.firebase;
+    } catch (e) { console.error('Popup-Max: Firebase load error', e); return null; }
+  }
+
+  async function registerPush(config) {
+    try {
+      const firebase = await loadFirebase();
+      if (!firebase) return;
+
+
+      // Get config from the first active popup since it's site-wide
+      // We stored the global config in a variable or we can access it from the first popup config's metadata if we passed it down
+      // Actually, we need to capture the firebaseConfig from the fetchPopupConfig response
+      if (!window.popupMaxFirebaseConfig) {
+        console.error('Popup-Max: Firebase config not found.');
+        return;
+      }
+
+      const { vapidKey, ...firebaseConfig } = window.popupMaxFirebaseConfig;
+
+      if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+      const messaging = firebase.messaging();
+
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        const token = await messaging.getToken({ vapidKey });
+        if (token) {
+          await fetch(`${origin}/api/subscribers`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ siteId, token, userAgent: navigator.userAgent }),
+          });
+          sessionStorage.setItem(SUBMIT_KEY_PREFIX + config.popupId, 'true');
+          showThankYou(config);
+        }
+      } else {
+        console.warn('Popup-Max: Permission denied');
+        alert('Permission denied. Please enable notifications in your browser settings.');
+      }
+    } catch (e) {
+      console.error('Popup-Max: Push registration failed', e);
     }
   }
 

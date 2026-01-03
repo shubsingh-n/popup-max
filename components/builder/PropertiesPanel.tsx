@@ -477,6 +477,7 @@ export default function PropertiesPanel({
                                     <option value="close">Close Popup</option>
                                     <option value="link">Go to URL</option>
                                     <option value="trigger_popup">Trigger another Popup</option>
+                                    <option value="register_push">Push Permission (Browser Default)</option>
                                 </select>
                             </div>
                             {content.action === 'trigger_popup' && (

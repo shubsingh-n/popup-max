@@ -13,6 +13,7 @@ export interface IPopup extends Document {
   ctaText?: string;
 
   // New
+  type?: 'popup' | 'notification';
   settings: {
     width: string;
     height: string;
@@ -111,6 +112,12 @@ const PopupSchema: Schema = new Schema(
     },
 
     // Global Popup Settings
+    type: {
+      type: String,
+      enum: ['popup', 'notification'],
+      default: 'popup',
+      index: true
+    },
     settings: {
       width: { type: String, default: '500px' },
       height: { type: String, default: 'auto' },

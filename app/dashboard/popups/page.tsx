@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Edit, Trash2, Copy, MousePointer2, ExternalLink, FlaskConical, Layers, Plus, Split, GripVertical } from 'lucide-react';
+import { Edit, Trash2, Copy, MousePointer2, ExternalLink, FlaskConical, Layers, Plus, Split, GripVertical, Bell } from 'lucide-react';
 import {
   DndContext,
   DragEndEvent,
@@ -35,6 +35,7 @@ interface Popup {
     submissions: number;
   };
   createdAt: string;
+  type?: 'popup' | 'notification';
 }
 
 function DraggableRow({ id, children, disabled }: { id: string; children: React.ReactNode; disabled?: boolean }) {
@@ -332,6 +333,11 @@ function PopupsContent() {
                 </button>
               </div>
             )}
+            {popup.type === 'notification' && (
+              <span className="ml-2 flex flex-row items-center justify-center p-1 bg-yellow-100 rounded text-yellow-800 text-xs font-medium" title="Push Notification">
+                <Bell size={12} className="mr-1" /> Push
+              </span>
+            )}
           </div>
         </div>
 
@@ -378,7 +384,7 @@ function PopupsContent() {
             </button>
           </div>
         </div>
-      </div>
+      </div >
     );
   };
 
@@ -386,13 +392,19 @@ function PopupsContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Popups</h1>
+      <div className="flex items-center gap-4 mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mr-4">Popups</h1>
         <Link
           href={`/dashboard/popups/new${selectedSiteId ? `?siteId=${selectedSiteId}` : ''}`}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
         >
           <span className="text-xl">+</span> Create Popup
+        </Link>
+        <Link
+          href={`/dashboard/popups/new${selectedSiteId ? `?siteId=${selectedSiteId}` : ''}&type=notification`}
+          className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition-colors flex items-center gap-2"
+        >
+          <Bell size={18} /> Create Notification
         </Link>
       </div>
 
