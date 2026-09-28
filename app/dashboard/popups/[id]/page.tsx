@@ -24,9 +24,27 @@ function PopupBuilderContent() {
   useEffect(() => {
     if (isNew) {
       const sid = searchParams.get('siteId');
-      if (sid) setSiteId(sid);
-      setInitialTitle('New Popup');
-      setLoading(false);
+      if (sid) {
+        setSiteId(sid);
+        setInitialTitle('New Popup');
+        setLoading(false);
+      } else {
+        // Fetch sites and use the first one as default
+        fetch('/api/sites')
+          .then(res => res.json())
+          .then(data => {
+            if (data.success && data.data.length > 0) {
+              setSiteId(data.data[0].siteId);
+            }
+            setInitialTitle('New Popup');
+            setLoading(false);
+          })
+          .catch(err => {
+            console.error('Error fetching sites:', err);
+            setInitialTitle('New Popup');
+            setLoading(false);
+          });
+      }
     } else {
       fetchPopup();
     }
