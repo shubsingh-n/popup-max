@@ -59,23 +59,39 @@ export async function GET(
     // Add all standalone popups
     standalonePopups.forEach(p => selectedPopups.push(p));
 
-    // For each group, select one variant (Round Robin)
+    // For each group, select one variant (Round Robin or Skewed)
     Object.keys(groups).forEach(groupId => {
       const variants = groups[groupId].sort((a, b) => (a.variantLabel || '').localeCompare(b.variantLabel || ''));
       let selectedVariant = variants[0];
 
+      const distributionType = variants[0].distributionType || 'round_robin';
+
       if (variants.length > 1) {
-        let nextIndex = 0;
-        if (lastVariantId) {
-          // Note: This logic assumes lastVariantId is globally unique, but it might only match one group.
-          // We might need to pass multiple lastVariantIds if we really want to track precisely per group,
-          // but for now we'll stick to a simpler approach or just try to find it.
-          const currentIndex = variants.findIndex(v => v._id.toString() === lastVariantId);
-          if (currentIndex !== -1) {
-            nextIndex = (currentIndex + 1) % variants.length;
+        if (distributionType === 'skewed') {
+          // Weighted random selection
+          const totalWeight = variants.reduce((sum, v) => sum + (v.variantWeight || 0), 0);
+          if (totalWeight > 0) {
+            let random = Math.random() * totalWeight;
+            for (const v of variants) {
+              const weight = v.variantWeight || 0;
+              if (random < weight) {
+                selectedVariant = v;
+                break;
+              }
+              random -= weight;
+            }
           }
+        } else {
+          // Round Robin
+          let nextIndex = 0;
+          if (lastVariantId) {
+            const currentIndex = variants.findIndex(v => v._id.toString() === lastVariantId);
+            if (currentIndex !== -1) {
+              nextIndex = (currentIndex + 1) % variants.length;
+            }
+          }
+          selectedVariant = variants[nextIndex];
         }
-        selectedVariant = variants[nextIndex];
       }
       selectedPopups.push(selectedVariant);
     });

@@ -29,6 +29,9 @@ interface Popup {
   isActive: boolean;
   testGroupId?: string;
   variantLabel?: string;
+  testGroupName?: string;
+  distributionType?: 'round_robin' | 'skewed';
+  variantWeight?: number;
   stats?: {
     visitors: number;
     views: number;
@@ -97,6 +100,14 @@ function PopupsContent() {
   // UI States
   const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
   const [tempTitle, setTempTitle] = useState('');
+  
+  // Group UI States
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+  const [tempGroupSettings, setTempGroupSettings] = useState<{
+    name: string;
+    distributionType: 'round_robin' | 'skewed';
+    weights: { id: string; label: string; weight: number }[];
+  } | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -300,6 +311,35 @@ function PopupsContent() {
     } catch (error) { console.error(error); }
   };
 
+  const handleSaveGroup = async (groupId: string) => {
+    if (!tempGroupSettings) return;
+    try {
+      const res = await fetch(`/api/popups/group/${groupId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          testGroupName: tempGroupSettings.name,
+          distributionType: tempGroupSettings.distributionType,
+          weights: tempGroupSettings.weights
+        }),
+      });
+      if (res.ok) {
+        fetchPopups(selectedSiteId);
+        setEditingGroupId(null);
+      }
+    } catch (error) { console.error(error); }
+  };
+
+  const startEditGroup = (groupId: string, variants: Popup[], e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingGroupId(groupId);
+    setTempGroupSettings({
+      name: variants[0]?.testGroupName || 'A/B Test Group',
+      distributionType: variants[0]?.distributionType || 'round_robin',
+      weights: variants.map(v => ({ id: v._id, label: v.variantLabel || 'A', weight: v.variantWeight || 50 }))
+    });
+  };
+
   const startRename = (popup: Popup, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingTitleId(popup._id);
@@ -499,14 +539,95 @@ function PopupsContent() {
                         return (
                           <DroppableArea key={popup.testGroupId} id={popup.testGroupId} type="group">
                             <div className="p-4 bg-blue-50/20 border-l-4 border-blue-500 my-2 shadow-sm rounded-r-lg mx-2">
-                              <div className="flex items-center gap-2 mb-3 px-2">
-                                <FlaskConical size={16} className="text-blue-600" />
-                                <h3 className="text-[11px] font-bold text-blue-900 uppercase tracking-wider">A/B Test Group</h3>
-                                <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-bold">{variants.length} VARIANTS</span>
-                              </div>
+                              
+                              {editingGroupId === popup.testGroupId && tempGroupSettings ? (
+                                <div className="mb-4 p-3 bg-white border border-blue-200 rounded-lg shadow-sm">
+                                  <div className="flex items-center gap-4 mb-3">
+                                    <div className="flex-1">
+                                      <label className="block text-xs font-bold text-gray-700 mb-1">Group Name</label>
+                                      <input 
+                                        type="text" 
+                                        value={tempGroupSettings.name}
+                                        onChange={e => setTempGroupSettings({...tempGroupSettings, name: e.target.value})}
+                                        className="w-full border rounded px-3 py-1.5 text-sm"
+                                      />
+                                    </div>
+                                    <div className="w-48">
+                                      <label className="block text-xs font-bold text-gray-700 mb-1">Distribution</label>
+                                      <select 
+                                        value={tempGroupSettings.distributionType}
+                                        onChange={e => setTempGroupSettings({...tempGroupSettings, distributionType: e.target.value as any})}
+                                        className="w-full border rounded px-3 py-1.5 text-sm bg-white"
+                                      >
+                                        <option value="round_robin">Round Robin (Even)</option>
+                                        <option value="skewed">Skewed (Weighted)</option>
+                                      </select>
+                                    </div>
+                                  </div>
+                                  
+                                  {tempGroupSettings.distributionType === 'skewed' && (
+                                    <div className="mb-3 bg-gray-50 p-3 rounded border">
+                                      <label className="block text-xs font-bold text-gray-700 mb-2">Traffic Weights (%)</label>
+                                      <div className="flex flex-wrap gap-4">
+                                        {tempGroupSettings.weights.map((w, idx) => (
+                                          <div key={w.id} className="flex items-center gap-2">
+                                            <span className="font-bold text-blue-700 text-sm">{w.label}:</span>
+                                            <input 
+                                              type="number" 
+                                              min="0" 
+                                              max="100"
+                                              value={w.weight}
+                                              onChange={e => {
+                                                const newWeights = [...tempGroupSettings.weights];
+                                                newWeights[idx].weight = Number(e.target.value);
+                                                setTempGroupSettings({...tempGroupSettings, weights: newWeights});
+                                              }}
+                                              className="w-16 border rounded px-2 py-1 text-sm text-center"
+                                            />
+                                            <span className="text-gray-500 text-sm">%</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  <div className="flex justify-end gap-2">
+                                    <button onClick={() => setEditingGroupId(null)} className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                                    <button onClick={() => handleSaveGroup(popup.testGroupId as string)} className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Save Changes</button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex items-center justify-between mb-3 px-2 group">
+                                  <div className="flex items-center gap-2">
+                                    <FlaskConical size={16} className="text-blue-600" />
+                                    <h3 className="text-[12px] font-bold text-blue-900 tracking-wider">
+                                      {variants[0]?.testGroupName || 'A/B TEST GROUP'}
+                                    </h3>
+                                    <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-bold">{variants.length} VARIANTS</span>
+                                    {variants[0]?.distributionType === 'skewed' && (
+                                      <span className="text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-bold ml-1">SKEWED</span>
+                                    )}
+                                  </div>
+                                  <button onClick={(e) => startEditGroup(popup.testGroupId as string, variants, e)} className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-blue-600 transition-opacity p-1">
+                                    <Edit size={14} />
+                                  </button>
+                                </div>
+                              )}
+
                               <div className="space-y-1.5">
                                 {variants.map(v => (
-                                  <DraggableRow key={v._id} id={v._id}>{renderPopupRow(v, true)}</DraggableRow>
+                                  <DraggableRow key={v._id} id={v._id}>
+                                    <div className="relative">
+                                      {renderPopupRow(v, true)}
+                                      {!editingGroupId && v.distributionType === 'skewed' && (
+                                        <div className="absolute top-0 right-48 h-full flex items-center pr-4 pointer-events-none">
+                                          <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded border border-purple-100">
+                                            {v.variantWeight || 50}%
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </DraggableRow>
                                 ))}
                               </div>
                             </div>

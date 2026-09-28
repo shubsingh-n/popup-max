@@ -73,6 +73,9 @@ export interface IPopup extends Document {
   isActive: boolean;
   testGroupId?: string;   // New: For A/B Testing
   variantLabel?: string; // New: e.g., 'A', 'B', 'C'
+  testGroupName?: string;
+  distributionType?: 'round_robin' | 'skewed';
+  variantWeight?: number;
   stats?: {
     visitors: number;
     views: number;
@@ -201,6 +204,9 @@ const PopupSchema: Schema = new Schema(
     },
     testGroupId: { type: String, default: null, index: true },
     variantLabel: { type: String, default: null },
+    testGroupName: { type: String, default: 'A/B Test Group' },
+    distributionType: { type: String, enum: ['round_robin', 'skewed'], default: 'round_robin' },
+    variantWeight: { type: Number, default: 50 },
     stats: {
       visitors: { type: Number, default: 0 },
       views: { type: Number, default: 0 },
