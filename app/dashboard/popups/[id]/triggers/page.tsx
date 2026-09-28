@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Save, Plus, Trash2, Globe, FileText, Code, Clock, MousePointer2, User, Layout, ArrowUpRight } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Globe, FileText, Code, Clock, MousePointer2, User, Layout, ArrowUpRight, MapPin } from 'lucide-react';
 
 interface TriggerRule {
     matchType: string;
@@ -19,6 +19,10 @@ interface TriggersState {
     pageUrl: TriggerRule[];
     pageTitle: TriggerRule[];
     jsVariable: JsTriggerRule[];
+    utmParameters: JsTriggerRule[];
+    targetDevices: string[];
+    targetBrowsers: string[];
+    targetCountries: string[];
     timeDelay: number | null;
     scrollPercentage: number | null;
     clickElement: string | null;
@@ -29,6 +33,7 @@ interface TriggersState {
     visitorCount: number;
     clickTrigger: string | null;
     autoCloseDelay: number | null;
+    exitIntent: boolean;
 }
 
 interface SettingsState {
@@ -58,6 +63,10 @@ const defaultTriggers: TriggersState = {
     pageUrl: [],
     pageTitle: [],
     jsVariable: [],
+    utmParameters: [],
+    targetDevices: ['desktop', 'mobile', 'tablet'],
+    targetBrowsers: ['chrome', 'firefox', 'safari', 'edge', 'opera'],
+    targetCountries: [],
     timeDelay: null,
     scrollPercentage: null,
     clickElement: null,
@@ -67,6 +76,7 @@ const defaultTriggers: TriggersState = {
     visitorCount: 0,
     clickTrigger: null,
     autoCloseDelay: null,
+    exitIntent: false,
 };
 
 const defaultSettings: SettingsState = {
@@ -95,7 +105,7 @@ export default function TriggerConfigPage() {
     const [saving, setSaving] = useState(false);
     const [triggers, setTriggers] = useState<TriggersState>(defaultTriggers);
     const [settings, setSettings] = useState<SettingsState>(defaultSettings);
-    const [activeTab, setActiveTab] = useState<'pages' | 'time' | 'advanced' | 'visitor' | 'display' | 'teaser'>('pages');
+    const [activeTab, setActiveTab] = useState<'pages' | 'time' | 'advanced' | 'visitor' | 'display' | 'teaser' | 'geo_device'>('pages');
 
     useEffect(() => {
         fetchPopup();
@@ -239,6 +249,12 @@ export default function TriggerConfigPage() {
                         onClick={() => setActiveTab('visitor')}
                         icon={<User size={18} />}
                         label="Visitor Rules"
+                    />
+                    <NavButton
+                        active={activeTab === 'geo_device'}
+                        onClick={() => setActiveTab('geo_device')}
+                        icon={<MapPin size={18} />}
+                        label="Geo & Device"
                     />
                     <NavButton
                         active={activeTab === 'time'}
@@ -456,6 +472,157 @@ export default function TriggerConfigPage() {
                                         <Plus size={16} /> Add new Title rule
                                     </button>
                                 </Section>
+
+                                <Section
+                                    title="UTM Parameters"
+                                    description="Show popup only when specific UTM parameters are in the URL."
+                                >
+                                    {triggers.utmParameters?.map((rule, idx) => (
+                                        <div key={idx} className="flex gap-3 mb-3 items-center bg-gray-50 p-3 rounded border">
+                                            <input
+                                                type="text"
+                                                value={rule.name}
+                                                onChange={(e) => updateRule('utmParameters', idx, 'name', e.target.value)}
+                                                className="border rounded px-3 py-1 w-1/3"
+                                                placeholder="e.g. utm_campaign"
+                                            />
+                                            <select
+                                                value={rule.matchType}
+                                                onChange={(e) => updateRule('utmParameters', idx, 'matchType', e.target.value)}
+                                                className="border rounded px-2 py-1 bg-white"
+                                            >
+                                                <option value="equals">Equals</option>
+                                                <option value="contains">Contains</option>
+                                            </select>
+                                            <input
+                                                type="text"
+                                                value={rule.value}
+                                                onChange={(e) => updateRule('utmParameters', idx, 'value', e.target.value)}
+                                                className="flex-1 border rounded px-3 py-1"
+                                                placeholder="e.g. summer_sale"
+                                            />
+                                            <button onClick={() => removeRule('utmParameters', idx)} className="text-red-500 hover:text-red-700">
+                                                <Trash2 size={18} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    <button
+                                        onClick={() => addRule('utmParameters', { name: '', matchType: 'equals', value: '' })}
+                                        className="text-blue-600 text-sm font-medium flex items-center gap-1 hover:underline"
+                                    >
+                                        <Plus size={16} /> Add new UTM rule
+                                    </button>
+                                </Section>
+                            </div>
+                        )}
+
+                        {activeTab === 'geo_device' && (
+                            <div className="space-y-6">
+                                <Section title="Device Targeting" description="Select which devices this popup should appear on.">
+                                    <div className="flex gap-4">
+                                        {['desktop', 'mobile', 'tablet'].map(device => (
+                                            <label key={device} className="flex items-center gap-2 cursor-pointer p-3 border rounded hover:bg-gray-50">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={triggers.targetDevices?.includes(device) ?? true}
+                                                    onChange={(e) => {
+                                                        const devices = triggers.targetDevices || ['desktop', 'mobile', 'tablet'];
+                                                        setTriggers(prev => ({
+                                                            ...prev,
+                                                            targetDevices: e.target.checked
+                                                                ? [...devices, device]
+                                                                : devices.filter(d => d !== device)
+                                                        }));
+                                                    }}
+                                                    className="w-4 h-4 text-blue-600 rounded border-gray-300"
+                                                />
+                                                <span className="capitalize text-sm font-medium text-gray-700">{device}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </Section>
+
+                                <Section title="Browser Targeting" description="Select which browsers this popup should appear on.">
+                                    <div className="flex flex-wrap gap-4">
+                                        <label className="flex items-center gap-2 cursor-pointer p-3 border rounded hover:bg-gray-50 bg-blue-50/50">
+                                            <input
+                                                type="checkbox"
+                                                checked={(triggers.targetBrowsers || ['chrome', 'firefox', 'safari', 'edge', 'opera']).length === 5}
+                                                onChange={(e) => {
+                                                    setTriggers(prev => ({
+                                                        ...prev,
+                                                        targetBrowsers: e.target.checked ? ['chrome', 'firefox', 'safari', 'edge', 'opera'] : []
+                                                    }));
+                                                }}
+                                                className="w-4 h-4 text-blue-600 rounded border-gray-300"
+                                            />
+                                            <span className="capitalize text-sm font-bold text-gray-700">All Browsers</span>
+                                        </label>
+                                        
+                                        {['chrome', 'firefox', 'safari', 'edge', 'opera'].map(browser => (
+                                            <label key={browser} className="flex items-center gap-2 cursor-pointer p-3 border rounded hover:bg-gray-50">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={triggers.targetBrowsers?.includes(browser) ?? true}
+                                                    onChange={(e) => {
+                                                        const browsers = triggers.targetBrowsers || ['chrome', 'firefox', 'safari', 'edge', 'opera'];
+                                                        setTriggers(prev => ({
+                                                            ...prev,
+                                                            targetBrowsers: e.target.checked
+                                                                ? [...browsers, browser]
+                                                                : browsers.filter(b => b !== browser)
+                                                        }));
+                                                    }}
+                                                    className="w-4 h-4 text-blue-600 rounded border-gray-300"
+                                                />
+                                                <span className="capitalize text-sm font-medium text-gray-700">{browser}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </Section>
+
+                                <Section title="Geo Targeting (Countries)" description="Target specific countries by their 2-letter country code (e.g., US, CA, IN). Leave empty to target all countries.">
+                                    <div className="space-y-3">
+                                        <div className="flex gap-3 items-center bg-gray-50 p-3 rounded border">
+                                            <input
+                                                type="text"
+                                                placeholder="Type country code and press Enter (e.g. US)"
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        const val = (e.target as HTMLInputElement).value.toUpperCase().trim();
+                                                        if (val && !(triggers.targetCountries || []).includes(val)) {
+                                                            setTriggers(prev => ({ ...prev, targetCountries: [...(prev.targetCountries || []), val] }));
+                                                            (e.target as HTMLInputElement).value = '';
+                                                        }
+                                                    }
+                                                }}
+                                                className="flex-1 border rounded px-3 py-1"
+                                            />
+                                        </div>
+                                        {triggers.targetCountries && triggers.targetCountries.length > 0 && (
+                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                {triggers.targetCountries.map((country, idx) => (
+                                                    <span key={idx} className="bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full flex items-center gap-2 font-bold">
+                                                        {country}
+                                                        <button
+                                                            onClick={() => setTriggers(prev => ({
+                                                                ...prev,
+                                                                targetCountries: (prev.targetCountries || []).filter(c => c !== country)
+                                                            }))}
+                                                            className="hover:text-blue-900"
+                                                        >
+                                                            &times;
+                                                        </button>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {(!triggers.targetCountries || triggers.targetCountries.length === 0) && (
+                                            <p className="text-sm text-gray-500 italic">Showing to all countries.</p>
+                                        )}
+                                    </div>
+                                </Section>
                             </div>
                         )}
 
@@ -488,7 +655,21 @@ export default function TriggerConfigPage() {
                                     </div>
                                 </Section>
 
-                                <Section title="Inactivity" description="Show popup after X seconds of no mouse movement/clicks.">
+                                <Section title="Exit Intent" description="Trigger popup when the user's mouse moves towards the top of the browser window (indicating they are about to leave).">
+                                    <div className="flex items-center gap-3">
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={!!triggers.exitIntent}
+                                                onChange={(e) => setTriggers(prev => ({ ...prev, exitIntent: e.target.checked }))}
+                                                className="w-4 h-4 text-blue-600 rounded border-gray-300"
+                                            />
+                                            <span className="font-medium text-gray-700">Enable Exit Intent</span>
+                                        </label>
+                                    </div>
+                                </Section>
+
+                                <Section title="Idle Intent" description="Trigger popup after X seconds of no mouse movement or clicks.">
                                     <div className="flex items-center gap-3">
                                         <input
                                             type="number"
@@ -604,7 +785,112 @@ export default function TriggerConfigPage() {
 
                                         {settings.overState?.enabled && (
                                             <>
-                                                <div className="grid grid-cols-2 gap-8">
+                                                <div className="grid grid-cols-2 gap-8 mb-6">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-2">Teaser Text</label>
+                                                        <input
+                                                            type="text"
+                                                            value={settings.overState.text}
+                                                            onChange={(e) => setSettings(prev => ({
+                                                                ...prev,
+                                                                overState: { ...prev.overState!, text: e.target.value }
+                                                            }))}
+                                                            className="w-full border rounded px-3 py-2"
+                                                            placeholder="e.g. Open Offer"
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-center mt-6">
+                                                        <label className="flex items-center gap-2 cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={settings.overState.showClose}
+                                                                onChange={(e) => setSettings(prev => ({
+                                                                    ...prev,
+                                                                    overState: { ...prev.overState!, showClose: e.target.checked }
+                                                                }))}
+                                                                className="w-4 h-4 text-blue-600 rounded border-gray-300"
+                                                            />
+                                                            <span className="text-sm font-medium text-gray-700">Show Close Button on Teaser</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-8 mb-6">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-2">Background Color</label>
+                                                        <div className="flex gap-2">
+                                                            <input
+                                                                type="color"
+                                                                value={settings.overState.style?.backgroundColor || '#ffffff'}
+                                                                onChange={(e) => setSettings(prev => ({
+                                                                    ...prev,
+                                                                    overState: {
+                                                                        ...prev.overState!,
+                                                                        style: { ...prev.overState!.style, backgroundColor: e.target.value }
+                                                                    }
+                                                                }))}
+                                                                className="h-10 w-10 border rounded p-1 cursor-pointer"
+                                                            />
+                                                            <input
+                                                                type="text"
+                                                                value={settings.overState.style?.backgroundColor || '#ffffff'}
+                                                                onChange={(e) => setSettings(prev => ({
+                                                                    ...prev,
+                                                                    overState: {
+                                                                        ...prev.overState!,
+                                                                        style: { ...prev.overState!.style, backgroundColor: e.target.value }
+                                                                    }
+                                                                }))}
+                                                                className="flex-1 border rounded px-3 py-2 font-mono"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-2">Text Color</label>
+                                                        <div className="flex gap-2">
+                                                            <input
+                                                                type="color"
+                                                                value={settings.overState.style?.color || '#000000'}
+                                                                onChange={(e) => setSettings(prev => ({
+                                                                    ...prev,
+                                                                    overState: {
+                                                                        ...prev.overState!,
+                                                                        style: { ...prev.overState!.style, color: e.target.value }
+                                                                    }
+                                                                }))}
+                                                                className="h-10 w-10 border rounded p-1 cursor-pointer"
+                                                            />
+                                                            <input
+                                                                type="text"
+                                                                value={settings.overState.style?.color || '#000000'}
+                                                                onChange={(e) => setSettings(prev => ({
+                                                                    ...prev,
+                                                                    overState: {
+                                                                        ...prev.overState!,
+                                                                        style: { ...prev.overState!.style, color: e.target.value }
+                                                                    }
+                                                                }))}
+                                                                className="flex-1 border rounded px-3 py-2 font-mono"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mb-6">
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">Custom HTML (Advanced)</label>
+                                                    <p className="text-xs text-gray-500 mb-2">Override the default teaser styling by providing your own HTML. This allows you to add images, custom shapes, and full styling.</p>
+                                                    <textarea
+                                                        value={settings.overState.customHtml || ''}
+                                                        onChange={(e) => setSettings(prev => ({
+                                                            ...prev,
+                                                            overState: { ...prev.overState!, customHtml: e.target.value }
+                                                        }))}
+                                                        className="w-full border rounded px-3 py-2 font-mono text-sm min-h-[100px]"
+                                                        placeholder="<div style='background: red; border-radius: 50%; padding: 10px;'><img src='...' /></div>"
+                                                    />
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-8 mb-6">
                                                     <div>
                                                         <label className="block text-sm font-medium text-gray-700 mb-2">Desktop Position</label>
                                                         <select

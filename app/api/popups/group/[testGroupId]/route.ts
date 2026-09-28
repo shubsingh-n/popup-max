@@ -19,13 +19,13 @@ export async function PUT(
     const { testGroupName, distributionType, weights } = body;
 
     // Verify ownership
-    const firstPopup = await Popup.findOne({ testGroupId: params.testGroupId });
-    if (!firstPopup) {
-      return NextResponse.json({ success: false, error: 'Group not found' }, { status: 404 });
-    }
+    const firstPopup = await Popup.findOne({ 
+      testGroupId: params.testGroupId, 
+      userId: (session.user as any).id 
+    });
     
-    if (firstPopup.userId.toString() !== (session.user as any).id) {
-       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
+    if (!firstPopup) {
+      return NextResponse.json({ success: false, error: 'Group not found or unauthorized' }, { status: 404 });
     }
 
     // Update group-level fields for all popups in the group
@@ -35,7 +35,7 @@ export async function PUT(
 
     if (Object.keys(updateQuery).length > 0) {
       await Popup.updateMany(
-        { testGroupId: params.testGroupId },
+        { testGroupId: params.testGroupId, userId: (session.user as any).id },
         { $set: updateQuery }
       );
     }
@@ -45,7 +45,7 @@ export async function PUT(
       for (const item of weights) {
         if (item.id && item.weight !== undefined) {
           await Popup.updateOne(
-            { _id: item.id, testGroupId: params.testGroupId },
+            { _id: item.id, testGroupId: params.testGroupId, userId: (session.user as any).id },
             { $set: { variantWeight: item.weight } }
           );
         }

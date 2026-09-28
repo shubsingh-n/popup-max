@@ -32,6 +32,7 @@ export interface IPopup extends Document {
       enabled: boolean;
       text: string;
       showClose: boolean;
+      customHtml?: string;
       style: any;
       triggers: {
         positionDesktop: string;
@@ -65,6 +66,10 @@ export interface IPopup extends Document {
     pageUrl?: Array<{ matchType: string; value: string }>;
     pageTitle?: Array<{ matchType: string; value: string }>;
     jsVariable?: Array<{ name: string; matchType: string; value: string }>;
+    utmParameters?: Array<{ name: string; matchType: string; value: string }>;
+    targetDevices?: string[];
+    targetBrowsers?: string[];
+    targetCountries?: string[];
     scrollPercentage?: number | null;
     clickElement?: string | null;
     inactivityTime?: number | null;
@@ -134,6 +139,7 @@ const PopupSchema: Schema = new Schema(
         enabled: { type: Boolean, default: false },
         text: { type: String, default: 'Open Offer' },
         showClose: { type: Boolean, default: true },
+        customHtml: { type: String, default: '' },
         style: { type: Schema.Types.Mixed, default: {} },
         triggers: {
           positionDesktop: { type: String, default: 'bottom-left' },
@@ -190,6 +196,14 @@ const PopupSchema: Schema = new Schema(
         matchType: { type: String, enum: ['equals', 'contains', 'greaterThan', 'lessThan'], default: 'equals' },
         value: { type: String, required: true }
       }],
+      utmParameters: [{
+        name: { type: String, required: true },
+        matchType: { type: String, enum: ['equals', 'contains'], default: 'equals' },
+        value: { type: String, required: true }
+      }],
+      targetDevices: { type: [String], default: ['desktop', 'mobile', 'tablet'] },
+      targetBrowsers: { type: [String], default: ['chrome', 'firefox', 'safari', 'edge', 'opera'] },
+      targetCountries: { type: [String], default: [] },
       scrollPercentage: { type: Number, min: 0, max: 100, default: null },
       clickElement: { type: String, default: null }, // Deprecated in favor of clickTrigger but keeping for now
       inactivityTime: { type: Number, default: null }, // Seconds

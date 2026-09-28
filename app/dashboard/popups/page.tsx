@@ -416,6 +416,18 @@ function PopupsContent() {
           </div>
         </div>
 
+        <div className="px-6 py-4 w-28 text-center flex justify-center items-center">
+           {isInsideGroup && popup.distributionType === 'skewed' ? (
+              <span className="text-[11px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded border border-purple-100">
+                {popup.variantWeight || 50}%
+              </span>
+           ) : isInsideGroup ? (
+              <span className="text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">Even</span>
+           ) : (
+              <span className="text-gray-300">-</span>
+           )}
+        </div>
+
         {/* Analytics */}
         <div className="px-6 py-4 flex-1 text-center font-bold text-gray-700">
           {popup.stats?.visitors || 0}
@@ -519,6 +531,7 @@ function PopupsContent() {
               <div className="bg-gray-50 border-b flex text-xs font-medium text-gray-500 uppercase tracking-wider select-none">
                 <div className="px-6 py-3 w-1/4">Title</div>
                 <div className="px-6 py-3 w-40">Status</div>
+                <div className="px-6 py-3 w-28 text-center">Traffic</div>
                 <div className="px-6 py-3 flex-1 text-center">Visitors</div>
                 <div className="px-6 py-3 flex-1 text-center">Triggered</div>
                 <div className="px-6 py-3 flex-1 text-center">Submitted</div>
@@ -608,7 +621,7 @@ function PopupsContent() {
                                       <span className="text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-bold ml-1">SKEWED</span>
                                     )}
                                   </div>
-                                  <button onClick={(e) => startEditGroup(popup.testGroupId as string, variants, e)} className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-blue-600 transition-opacity p-1">
+                                  <button onClick={(e) => startEditGroup(popup.testGroupId as string, variants, e)} className="text-gray-400 hover:text-blue-600 transition-colors p-1">
                                     <Edit size={14} />
                                   </button>
                                 </div>
@@ -617,16 +630,7 @@ function PopupsContent() {
                               <div className="space-y-1.5">
                                 {variants.map(v => (
                                   <DraggableRow key={v._id} id={v._id}>
-                                    <div className="relative">
-                                      {renderPopupRow(v, true)}
-                                      {!editingGroupId && v.distributionType === 'skewed' && (
-                                        <div className="absolute top-0 right-48 h-full flex items-center pr-4 pointer-events-none">
-                                          <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded border border-purple-100">
-                                            {v.variantWeight || 50}%
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
+                                    {renderPopupRow(v, true)}
                                   </DraggableRow>
                                 ))}
                               </div>
