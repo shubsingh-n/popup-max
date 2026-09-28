@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Edit, Trash2, Copy, MousePointer2, ExternalLink, FlaskConical, Layers, Plus, Split, GripVertical, Bell, RefreshCcw } from 'lucide-react';
+import { Edit, Trash2, Copy, MousePointer2, ExternalLink, FlaskConical, Layers, Plus, Split, GripVertical, Bell, RefreshCcw, Files, Code } from 'lucide-react';
 import {
   DndContext,
   DragEndEvent,
@@ -346,11 +346,40 @@ function PopupsContent() {
     setTempTitle(popup.title);
   };
 
-  const copyEmbedLink = (popup: Popup, e: React.MouseEvent) => {
+  const handleDuplicate = async (popup: Popup, e: React.MouseEvent) => {
     e.stopPropagation();
-    const code = `<script src="${window.location.origin}/popup.js" data-site-id="${popup.siteId}"></script>`;
-    navigator.clipboard.writeText(code);
-    alert('Embed code copied to clipboard!');
+    try {
+      const res = await fetch(`/api/popups/${popup._id}`);
+      const data = await res.json();
+      
+      if (data.success) {
+        const popupData = data.data;
+        // Clean up data for new document
+        delete popupData._id;
+        delete popupData.createdAt;
+        delete popupData.updatedAt;
+        delete popupData.testGroupId;
+        delete popupData.variantLabel;
+        delete popupData.stats;
+        popupData.title = `${popupData.title} (Copy)`;
+        popupData.isActive = false;
+
+        const createRes = await fetch('/api/popups', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(popupData),
+        });
+
+        if (createRes.ok) {
+          fetchPopups(selectedSiteId);
+        } else {
+          alert('Failed to duplicate popup');
+        }
+      }
+    } catch (error) {
+      console.error('Error duplicating popup:', error);
+      alert('Failed to duplicate popup');
+    }
   };
 
   const handleVerify = async () => {
@@ -446,8 +475,8 @@ function PopupsContent() {
                 <Split size={18} />
               </button>
             )}
-            <button onClick={(e) => copyEmbedLink(popup, e)} className="hover:text-blue-600 p-1" title="Copy Embed Code">
-              <Copy size={18} />
+            <button onClick={(e) => handleDuplicate(popup, e)} className="hover:text-green-600 p-1" title="Duplicate Popup">
+              <Files size={18} />
             </button>
             <Link href={`/dashboard/popups/${popup._id}`} className="hover:text-blue-600 p-1" title="Edit Design">
               <Edit size={18} />
@@ -472,12 +501,14 @@ function PopupsContent() {
     <div className="min-h-screen bg-gray-50 pb-12">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mr-4">Popups</h1>
-        <Link
-          href={`/dashboard/popups/new${selectedSiteId ? `?siteId=${selectedSiteId}` : ''}`}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-        >
-          <span className="text-xl">+</span> Create Popup
-        </Link>
+        <div className="flex gap-3">
+          <Link
+            href={`/dashboard/popups/new${selectedSiteId ? `?siteId=${selectedSiteId}` : ''}`}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium"
+          >
+            <span className="text-xl">+</span> Create Popup
+          </Link>
+        </div>
       </div>
 
       {showSetup && (

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Globe, Trash2, Edit, ExternalLink, Plus } from 'lucide-react';
+import { Globe, Trash2, Edit, ExternalLink, Plus, Code } from 'lucide-react';
 
 // Force dynamic rendering to prevent prerender errors
 export const dynamic = 'force-dynamic';
@@ -84,6 +84,12 @@ export default function SitesPage() {
     }
   };
 
+  const copyEmbedLink = (siteId: string) => {
+    const code = `<script src="${window.location.origin}/popup.js" data-site-id="${siteId}"></script>`;
+    navigator.clipboard.writeText(code);
+    alert('Embed code copied to clipboard!');
+  };
+
   const handleEdit = (site: Site) => {
     setEditingSite(site);
     setFormData({ name: site.name, domain: site.domain });
@@ -155,6 +161,13 @@ export default function SitesPage() {
                         title="Edit Site"
                       >
                         <Edit size={18} />
+                      </button>
+                      <button
+                        onClick={() => copyEmbedLink(site.siteId)}
+                        className="text-gray-400 hover:text-indigo-600 transition-colors"
+                        title="Copy Embed Code"
+                      >
+                        <Code size={18} />
                       </button>
                       <Link
                         href={`/dashboard/popups?siteId=${site.siteId}`}
