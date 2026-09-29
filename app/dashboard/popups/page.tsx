@@ -39,6 +39,13 @@ interface Popup {
   };
   createdAt: string;
   type?: 'popup' | 'notification';
+  isFallback?: boolean;
+  triggers?: {
+    schedule?: {
+      startTime?: string;
+      endTime?: string;
+    };
+  };
 }
 
 function DraggableRow({ id, children, disabled }: { id: string; children: React.ReactNode; disabled?: boolean }) {
@@ -382,6 +389,42 @@ function PopupsContent() {
     }
   };
 
+  const handleSetFallback = async (popupId: string, testGroupId: string, currentFallbackState: boolean) => {
+    // Optimistic Update
+    setPopups(prev => prev.map(p => {
+      if (p._id === popupId) return { ...p, isFallback: !currentFallbackState };
+      if (p.testGroupId === testGroupId && !currentFallbackState) return { ...p, isFallback: false };
+      return p;
+    }));
+
+    // If toggling off
+    if (currentFallbackState) {
+      await fetch(`/api/popups/${popupId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isFallback: false })
+      });
+      return;
+    }
+
+    // Toggling on
+    await fetch(`/api/popups/${popupId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isFallback: true })
+    });
+
+    // Toggle off others
+    const otherPopups = popups.filter(p => p.testGroupId === testGroupId && p._id !== popupId && p.isFallback);
+    for (const p of otherPopups) {
+      await fetch(`/api/popups/${p._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isFallback: false })
+      });
+    }
+  };
+
   const handleVerify = async () => {
     if (!selectedSite) return;
     setVerifying(true);
@@ -424,11 +467,40 @@ function PopupsContent() {
                 <button onClick={() => setEditingTitleId(null)} className="text-gray-500 text-xs">Cancel</button>
               </div>
             ) : (
-              <div className="flex items-center gap-2 group max-w-full overflow-hidden">
-                <span className="truncate" title={popup.title}>{popup.title}</span>
-                <button onClick={(e) => startRename(popup, e)} className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600">
-                  <Edit size={14} />
-                </button>
+              <div className="flex flex-col max-w-full overflow-hidden group">
+                <div className="flex items-center gap-2">
+                  <span className="truncate" title={popup.title}>{popup.title}</span>
+                  <button onClick={(e) => startRename(popup, e)} className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600">
+                    <Edit size={14} />
+                  </button>
+                </div>
+                {(() => {
+                  if (!popup.triggers?.schedule) return null;
+                  const { startTime, endTime } = popup.triggers.schedule;
+                  if (!startTime && !endTime) return null;
+                  const now = new Date();
+                  
+                  if (startTime && new Date(startTime) > now) {
+                    const diffMs = new Date(startTime).getTime() - now.getTime();
+                    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                    const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    return <span className="text-[10px] text-orange-500 font-medium">Starts in {diffDays}d {diffHours}h</span>;
+                  }
+                  
+                  if (endTime) {
+                    if (new Date(endTime) < now) {
+                      return <span className="text-[10px] text-red-500 font-medium">Expired</span>;
+                    } else {
+                      const diffMs = new Date(endTime).getTime() - now.getTime();
+                      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                      const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                      return <span className="text-[10px] text-blue-500 font-medium">Time left: {diffDays}d {diffHours}h</span>;
+                    }
+                  } else if (startTime && new Date(startTime) <= now) {
+                    return <span className="text-[10px] text-green-500 font-medium">Active (Started)</span>;
+                  }
+                  return null;
+                })()}
               </div>
             )}
           </div>
@@ -445,16 +517,34 @@ function PopupsContent() {
           </div>
         </div>
 
-        <div className="px-6 py-4 w-28 text-center flex justify-center items-center">
-           {isInsideGroup && popup.distributionType === 'skewed' ? (
+        <div className="px-6 py-4 w-40 text-center flex justify-center items-center gap-2">
+           {isInsideGroup && !popup.isFallback && popup.distributionType === 'skewed' && (
               <span className="text-[11px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded border border-purple-100">
                 {popup.variantWeight || 50}%
               </span>
-           ) : isInsideGroup ? (
-              <span className="text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">Even</span>
-           ) : (
-              <span className="text-gray-300">-</span>
            )}
+           {isInsideGroup && !popup.isFallback && popup.distributionType !== 'skewed' && (
+              <span className="text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                Even
+              </span>
+           )}
+           {isInsideGroup && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSetFallback(popup._id, popup.testGroupId!, !!popup.isFallback);
+                }}
+                title={popup.isFallback ? "Click to remove fallback" : "Make this the fallback popup"}
+                className={`text-[10px] font-bold px-2 py-0.5 rounded border transition-colors ${
+                  popup.isFallback 
+                    ? 'bg-amber-100 text-amber-700 border-amber-200' 
+                    : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-100'
+                }`}
+              >
+                {popup.isFallback ? 'Fallback' : 'Set Fallback'}
+              </button>
+           )}
+           {!isInsideGroup && <span className="text-gray-300">-</span>}
         </div>
 
         {/* Analytics */}
@@ -562,7 +652,7 @@ function PopupsContent() {
               <div className="bg-gray-50 border-b flex text-xs font-medium text-gray-500 uppercase tracking-wider select-none">
                 <div className="px-6 py-3 w-1/4">Title</div>
                 <div className="px-6 py-3 w-40">Status</div>
-                <div className="px-6 py-3 w-28 text-center">Traffic</div>
+                <div className="px-6 py-3 w-40 text-center">Traffic</div>
                 <div className="px-6 py-3 flex-1 text-center">Visitors</div>
                 <div className="px-6 py-3 flex-1 text-center">Triggered</div>
                 <div className="px-6 py-3 flex-1 text-center">Submitted</div>

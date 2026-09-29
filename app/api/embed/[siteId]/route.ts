@@ -43,9 +43,27 @@ export async function GET(
       );
     }
 
+    // Filter by schedule (startTime / endTime)
+    const now = new Date();
+    const scheduledPopups = activePopups.filter(popup => {
+      if (popup.isFallback) return true; // Fallback always survives initial time filtering
+      if (!popup.triggers?.schedule) return true;
+      const { startTime, endTime } = popup.triggers.schedule;
+      if (startTime && new Date(startTime) > now) return false;
+      if (endTime && new Date(endTime) < now) return false;
+      return true;
+    });
+
+    if (scheduledPopups.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'No active popup found for this site at this time' },
+        { status: 404, headers: corsHeaders }
+      );
+    }
+
     // Grouping Logic: Separate standalone popups from A/B test groups
-    const standalonePopups = activePopups.filter(p => !p.testGroupId);
-    const groupedPopups = activePopups.filter(p => p.testGroupId);
+    const standalonePopups = scheduledPopups.filter(p => !p.testGroupId);
+    const groupedPopups = scheduledPopups.filter(p => p.testGroupId);
 
     // Group the grouped popups by their testGroupId
     const groups: Record<string, any[]> = {};
@@ -61,7 +79,19 @@ export async function GET(
 
     // For each group, select one variant (Round Robin or Skewed)
     Object.keys(groups).forEach(groupId => {
-      const variants = groups[groupId].sort((a, b) => (a.variantLabel || '').localeCompare(b.variantLabel || ''));
+      const groupPopups = groups[groupId];
+      const fallbackVariant = groupPopups.find(p => p.isFallback);
+      const normalVariants = groupPopups.filter(p => !p.isFallback);
+
+      // If all normal variants are exhausted/invalid, show fallback if it exists
+      if (normalVariants.length === 0) {
+        if (fallbackVariant) {
+          selectedPopups.push(fallbackVariant);
+        }
+        return; // Proceed to next group
+      }
+
+      const variants = normalVariants.sort((a, b) => (a.variantLabel || '').localeCompare(b.variantLabel || ''));
       let selectedVariant = variants[0];
 
       const distributionType = variants[0].distributionType || 'round_robin';

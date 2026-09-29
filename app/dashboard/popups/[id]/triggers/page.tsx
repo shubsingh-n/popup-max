@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Save, Plus, Trash2, Globe, FileText, Code, Clock, MousePointer2, User, Layout, ArrowUpRight, MapPin } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Globe, FileText, Code, Clock, MousePointer2, User, Layout, ArrowUpRight, MapPin, CalendarClock } from 'lucide-react';
 
 interface TriggerRule {
     matchType: string;
@@ -34,6 +34,10 @@ interface TriggersState {
     clickTrigger: string | null;
     autoCloseDelay: number | null;
     exitIntent: boolean;
+    schedule?: {
+        startTime?: string | null;
+        endTime?: string | null;
+    };
 }
 
 interface SettingsState {
@@ -77,6 +81,10 @@ const defaultTriggers: TriggersState = {
     clickTrigger: null,
     autoCloseDelay: null,
     exitIntent: false,
+    schedule: {
+        startTime: null,
+        endTime: null,
+    }
 };
 
 const defaultSettings: SettingsState = {
@@ -105,7 +113,7 @@ export default function TriggerConfigPage() {
     const [saving, setSaving] = useState(false);
     const [triggers, setTriggers] = useState<TriggersState>(defaultTriggers);
     const [settings, setSettings] = useState<SettingsState>(defaultSettings);
-    const [activeTab, setActiveTab] = useState<'pages' | 'time' | 'advanced' | 'visitor' | 'display' | 'teaser' | 'geo_device'>('pages');
+    const [activeTab, setActiveTab] = useState<'pages' | 'time' | 'advanced' | 'visitor' | 'display' | 'teaser' | 'geo_device' | 'schedule'>('pages');
 
     useEffect(() => {
         fetchPopup();
@@ -255,6 +263,12 @@ export default function TriggerConfigPage() {
                         onClick={() => setActiveTab('geo_device')}
                         icon={<MapPin size={18} />}
                         label="Geo & Device"
+                    />
+                    <NavButton
+                        active={activeTab === 'schedule'}
+                        onClick={() => setActiveTab('schedule')}
+                        icon={<CalendarClock size={18} />}
+                        label="Schedule & Timer"
                     />
                     <NavButton
                         active={activeTab === 'time'}
@@ -622,6 +636,50 @@ export default function TriggerConfigPage() {
                                             <p className="text-sm text-gray-500 italic">Showing to all countries.</p>
                                         )}
                                     </div>
+                                </Section>
+                            </div>
+                        )}
+
+                        {activeTab === 'schedule' && (
+                            <div className="space-y-6">
+                                <Section title="Date & Time Schedule" description="Set a specific start and end time for this popup to be active.">
+                                    <div className="grid grid-cols-2 gap-8">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
+                                            <input
+                                                type="datetime-local"
+                                                value={triggers.schedule?.startTime ? (() => {
+                                                    const d = new Date(triggers.schedule.startTime);
+                                                    const pad = (n: number) => n.toString().padStart(2, '0');
+                                                    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                                                })() : ''}
+                                                onChange={(e) => setTriggers(prev => ({
+                                                    ...prev,
+                                                    schedule: { ...prev.schedule, startTime: e.target.value ? new Date(e.target.value).toISOString() : null }
+                                                }))}
+                                                className="w-full border rounded px-3 py-2"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">End Time</label>
+                                            <input
+                                                type="datetime-local"
+                                                value={triggers.schedule?.endTime ? (() => {
+                                                    const d = new Date(triggers.schedule.endTime);
+                                                    const pad = (n: number) => n.toString().padStart(2, '0');
+                                                    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                                                })() : ''}
+                                                onChange={(e) => setTriggers(prev => ({
+                                                    ...prev,
+                                                    schedule: { ...prev.schedule, endTime: e.target.value ? new Date(e.target.value).toISOString() : null }
+                                                }))}
+                                                className="w-full border rounded px-3 py-2"
+                                            />
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-gray-500 mt-4 italic">
+                                        If you specify an end time, a "Time Left" indicator will be shown on the popup's dashboard card. Leave fields empty to keep it active indefinitely.
+                                    </p>
                                 </Section>
                             </div>
                         )}

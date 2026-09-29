@@ -74,6 +74,10 @@ export interface IPopup extends Document {
     clickElement?: string | null;
     inactivityTime?: number | null;
     visitedPage?: Array<{ matchType: string; value: string }>;
+    schedule?: {
+      startTime?: string | null;
+      endTime?: string | null;
+    };
   };
   isActive: boolean;
   testGroupId?: string;   // New: For A/B Testing
@@ -81,6 +85,7 @@ export interface IPopup extends Document {
   testGroupName?: string;
   distributionType?: 'round_robin' | 'skewed';
   variantWeight?: number;
+  isFallback?: boolean; // New: Fallback for A/B Test Group
   stats?: {
     visitors: number;
     views: number;
@@ -210,7 +215,11 @@ const PopupSchema: Schema = new Schema(
       visitedPage: [{
         matchType: { type: String, default: 'contains' },
         value: { type: String, required: true }
-      }]
+      }],
+      schedule: {
+        startTime: { type: Date, default: null },
+        endTime: { type: Date, default: null }
+      }
     },
     isActive: {
       type: Boolean,
@@ -221,6 +230,7 @@ const PopupSchema: Schema = new Schema(
     testGroupName: { type: String, default: 'A/B Test Group' },
     distributionType: { type: String, enum: ['round_robin', 'skewed'], default: 'round_robin' },
     variantWeight: { type: Number, default: 50 },
+    isFallback: { type: Boolean, default: false },
     stats: {
       visitors: { type: Number, default: 0 },
       views: { type: Number, default: 0 },
