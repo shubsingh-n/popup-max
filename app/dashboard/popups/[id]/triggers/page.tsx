@@ -53,6 +53,7 @@ interface SettingsState {
         enabled: boolean;
         text: string;
         showClose: boolean;
+        customHtml?: string;
         style: any;
         triggers: {
             positionDesktop: string;
@@ -678,7 +679,7 @@ export default function TriggerConfigPage() {
                                         </div>
                                     </div>
                                     <p className="text-sm text-gray-500 mt-4 italic">
-                                        If you specify an end time, a "Time Left" indicator will be shown on the popup's dashboard card. Leave fields empty to keep it active indefinitely.
+                                        If you specify an end time, a &quot;Time Left&quot; indicator will be shown on the popup&apos;s dashboard card. Leave fields empty to keep it active indefinitely.
                                     </p>
                                 </Section>
                             </div>
