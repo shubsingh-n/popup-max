@@ -179,7 +179,7 @@
   }
 
   function createComponentElement(c) {
-    const { type, content, style, id } = c; let el;
+    const { type, content = {}, style = {}, id } = c; let el;
     if (type === 'title') el = document.createElement('h2');
     else if (type === 'description') el = document.createElement('p');
     else if (type === 'button') {
