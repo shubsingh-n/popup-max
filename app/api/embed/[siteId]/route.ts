@@ -138,6 +138,7 @@ export async function GET(
       components: popup.components,
       settings: popup.settings,
       type: popup.type || 'popup', // Include type
+      customCode: popup.customCode, // Include custom code
     }));
 
     const firebaseConfig = {
