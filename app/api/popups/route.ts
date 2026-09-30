@@ -62,6 +62,8 @@ export async function POST(request: NextRequest) {
       isActive,
       components,
       settings,
+      type,
+      customCode,
     } = body;
 
     // Validate Site ID
@@ -83,6 +85,8 @@ export async function POST(request: NextRequest) {
       title: popupTitle || 'Untitled Popup',
       description: description || '',
       ctaText: ctaText || 'Subscribe',
+      type: type || 'popup',
+      customCode: customCode || { html: '', css: '', js: '' },
 
       // New Structure
       components: components || [],

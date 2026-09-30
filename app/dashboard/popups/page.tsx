@@ -593,6 +593,12 @@ function PopupsContent() {
         <h1 className="text-3xl font-bold text-gray-900 mr-4">Popups</h1>
         <div className="flex gap-3">
           <Link
+            href={`/dashboard/popups/new${selectedSiteId ? `?siteId=${selectedSiteId}&type=custom` : '?type=custom'}`}
+            className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 font-medium"
+          >
+            <span className="text-xl">+</span> Custom Widget
+          </Link>
+          <Link
             href={`/dashboard/popups/new${selectedSiteId ? `?siteId=${selectedSiteId}` : ''}`}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium"
           >

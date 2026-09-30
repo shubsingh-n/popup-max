@@ -11,6 +11,12 @@ export interface IPopup extends Document {
   title?: string;
   description?: string;
   ctaText?: string;
+  type?: 'popup' | 'custom';
+  customCode?: {
+    html?: string;
+    css?: string;
+    js?: string;
+  };
 
   // New
   settings: {
@@ -121,6 +127,12 @@ const PopupSchema: Schema = new Schema(
       type: String,
       default: 'Subscribe',
       trim: true,
+    },
+    type: { type: String, enum: ['popup', 'custom'], default: 'popup' },
+    customCode: {
+      html: { type: String, default: '' },
+      css: { type: String, default: '' },
+      js: { type: String, default: '' },
     },
 
     // Global Popup Settings

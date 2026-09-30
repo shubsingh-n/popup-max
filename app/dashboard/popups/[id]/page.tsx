@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import DragAndDropBuilder from '@/components/builder/DragAndDropBuilder';
+import CustomWidgetBuilder from '@/components/builder/CustomWidgetBuilder';
 import { PopupComponent, PopupSettings } from '@/types/builder';
 
 function PopupBuilderContent() {
@@ -20,13 +21,18 @@ function PopupBuilderContent() {
   const [initialSettings, setInitialSettings] = useState<Partial<PopupSettings>>({});
   const [initialTitle, setInitialTitle] = useState('My Popup');
   const [isSaving, setIsSaving] = useState(false);
+  const [popupType, setPopupType] = useState<'popup' | 'custom'>('popup');
+  const [initialCustomCode, setInitialCustomCode] = useState<{ html?: string; css?: string; js?: string }>({});
 
   useEffect(() => {
     if (isNew) {
       const sid = searchParams.get('siteId');
+      const ptype = searchParams.get('type');
+      if (ptype === 'custom') setPopupType('custom');
+      
       if (sid) {
         setSiteId(sid);
-        setInitialTitle('New Popup');
+        setInitialTitle(ptype === 'custom' ? 'New Custom Widget' : 'New Popup');
         setLoading(false);
       } else {
         // Fetch sites and use the first one as default
@@ -36,12 +42,12 @@ function PopupBuilderContent() {
             if (data.success && data.data.length > 0) {
               setSiteId(data.data[0].siteId);
             }
-            setInitialTitle('New Popup');
+            setInitialTitle(ptype === 'custom' ? 'New Custom Widget' : 'New Popup');
             setLoading(false);
           })
           .catch(err => {
             console.error('Error fetching sites:', err);
-            setInitialTitle('New Popup');
+            setInitialTitle(ptype === 'custom' ? 'New Custom Widget' : 'New Popup');
             setLoading(false);
           });
       }
@@ -68,6 +74,14 @@ function PopupBuilderContent() {
         if (data.data.title) {
           setInitialTitle(data.data.title);
         }
+
+        if (data.data.type) {
+          setPopupType(data.data.type);
+        }
+
+        if (data.data.customCode) {
+          setInitialCustomCode(data.data.customCode);
+        }
       }
     } catch (error) {
       console.error('Error fetching popup:', error);
@@ -76,7 +90,12 @@ function PopupBuilderContent() {
     }
   };
 
-  const handleSave = async (components: PopupComponent[], settings: PopupSettings, title: string) => {
+  const handleSave = async (
+    title: string,
+    components: PopupComponent[] = [],
+    settings: any = {},
+    customCode: any = {}
+  ) => {
     setIsSaving(true);
     try {
       const url = isNew ? '/api/popups' : `/api/popups/${popupId}`;
@@ -87,6 +106,8 @@ function PopupBuilderContent() {
         components,
         settings,
         title,
+        type: popupType,
+        customCode,
         // Legacy fallback
         description: 'Created with new builder',
         ctaText: 'Submit',
@@ -119,15 +140,26 @@ function PopupBuilderContent() {
 
   return (
     <div className="h-full bg-gray-50">
-      <DragAndDropBuilder
-        siteId={siteId}
-        popupId={isNew ? undefined : popupId}
-        initialComponents={initialComponents}
-        initialSettings={initialSettings}
-        initialTitle={initialTitle}
-        onSave={handleSave}
-        isSaving={isSaving}
-      />
+      {popupType === 'custom' ? (
+        <CustomWidgetBuilder
+          siteId={siteId}
+          popupId={isNew ? undefined : popupId}
+          initialCode={initialCustomCode}
+          initialTitle={initialTitle}
+          onSave={(title, code) => handleSave(title, [], {}, code)}
+          isSaving={isSaving}
+        />
+      ) : (
+        <DragAndDropBuilder
+          siteId={siteId}
+          popupId={isNew ? undefined : popupId}
+          initialComponents={initialComponents}
+          initialSettings={initialSettings as PopupSettings}
+          initialTitle={initialTitle}
+          onSave={(comps, sets, t) => handleSave(t, comps, sets, {})}
+          isSaving={isSaving}
+        />
+      )}
     </div>
   );
 }

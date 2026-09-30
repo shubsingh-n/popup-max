@@ -484,7 +484,15 @@
 
   function showPopup(config, bypass = false) {
     const id = config.popupId; if (activePopups[id].shown || (activePopups[id].closed && !bypass)) return;
-    const ov = createPopup(config); document.body.appendChild(ov);
+    
+    let ov;
+    if (config.type === 'custom') {
+      ov = createCustomWidget(config);
+    } else {
+      ov = createPopup(config);
+    }
+    
+    document.body.appendChild(ov);
     activePopups[id].shown = true; sessionStorage.setItem('popup_max_shown_' + id, 'true');
     if (config.testGroupId) localStorage.setItem('popup_max_last_variant_' + siteId, config.popupId);
     trackEvent('view', config);
@@ -493,6 +501,40 @@
   function closePopup(config) {
     const id = config.popupId, inst = activePopups[id];
     if (inst.element) { inst.element.parentNode.removeChild(inst.element); inst.element = null; inst.shown = false; inst.closed = true; if (config.settings?.overState?.enabled) showTeaser(config); }
+  }
+
+  function createCustomWidget(config) {
+    const wrapper = document.createElement('div');
+    wrapper.id = 'popup-max-custom-' + config.popupId;
+    
+    if (config.customCode?.css) {
+      const style = document.createElement('style');
+      style.textContent = config.customCode.css;
+      wrapper.appendChild(style);
+    }
+    
+    if (config.customCode?.html) {
+      const htmlContainer = document.createElement('div');
+      htmlContainer.innerHTML = config.customCode.html;
+      wrapper.appendChild(htmlContainer);
+    }
+    
+    if (config.customCode?.js) {
+      const script = document.createElement('script');
+      script.textContent = `(function() { ${config.customCode.js} })();`;
+      wrapper.appendChild(script);
+    }
+
+    // Expose close function to custom code via window
+    if (!window.PopupMax) window.PopupMax = {};
+    window.PopupMax.close = window.PopupMax.close || function(popupId) {
+      if (activePopups[popupId]) {
+        closePopup(activePopups[popupId].config);
+      }
+    };
+    
+    activePopups[config.popupId].element = wrapper;
+    return wrapper;
   }
 
   function setupExitIntent(config) {
